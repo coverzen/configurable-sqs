@@ -30,7 +30,7 @@ $finder = Finder::create()
  *
  * @var Config $config
  */
-$config = new PhpCsFixer\Config();
+$config = new Config();
 
 return $config->setUsingCache(true)
               ->setRiskyAllowed(true)
@@ -106,7 +106,7 @@ return $config->setUsingCache(true)
                           'position' => 'end',
                       ],
                       'native_constant_invocation' => [
-                          'fix_built_in' => false
-                      ]
+                          'fix_built_in' => false,
+                      ],
                   ]
               );

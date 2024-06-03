@@ -3,9 +3,4 @@ parameters:
         - src
     # The level 9 is the highest level
     level: 5
-    ignoreErrors:
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
-    parallel:
-            processTimeout: 300.0
     tmpDir: ./.phpstan.cache

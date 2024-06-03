@@ -1,7 +1,7 @@
 {
     "name": "coverzen/configurable-sqs",
     "description": "Package to utilize laravel queue:work command to listen to Amazon SQS message with configurable schemas",
-    "keyword": ["coverzen", "sqs"],
+    "keyword": ["laravel-package", "laravel", "sqs", "aws", "queue", "worker"],
     "license": "MIT",
     "authors": [{
         "name": "Francesco Giovannini",
