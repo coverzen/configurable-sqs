@@ -1,0 +1,54 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '*.md'
+  pull_request:
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  style-checks:
+    uses: ./.github/workflows/style-checks.yml
+
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: [ "tests", "style-checks" ]
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - run: npm i @semantic-release/changelog semantic-release conventional-changelog-conventionalcommits @semantic-release/exec @semantic-release/git
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+  publish-package:
+    needs: release
+    if: contains(github.event.head_commit.message, 'chore(release)')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.5.3
+
+      - uses: hotaruma/packagist-sync@v1.0.1
+        with:
+          packagist-username: ${{ secrets.PACKAGIST_USERNAME }}
+          api-token: ${{ secrets.PACKAGIST_TOKEN }}
+          github-repository-url: ${{ github.repository }}

@@ -1,0 +1,10 @@
+vendor
+composer.lock
+
+build
+.php-cs-fixer.cache
+.phpcs-cache
+.phpmd.result-cache.php
+.phpunit.cache
+.phpunit.result.cache
+.phpstan.cache

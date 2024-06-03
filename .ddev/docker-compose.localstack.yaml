@@ -1,0 +1,10 @@
+services:
+  localstack:
+    container_name: ddev-${DDEV_SITENAME}-localstack
+    image: localstack/localstack:latest
+    environment:
+      - SERVICES=sqs,sns
+      - AWS_DEFAULT_REGION=eu-south-1
+      - EDGE_PORT=4566
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
