@@ -38,6 +38,7 @@ Then, you need to add the following configuration to your `config/queue.php` fil
         'queue' => 'your-queue-name',
         'suffix' => '',
         'region' => env('AWS_DEFAULT_REGION'),
+        'has_consumer' => true,
     ],
 ]
 ```
@@ -89,6 +90,71 @@ YourListener implements ListenerInterface
         // Your logic here
     }
 }
+```
+
+## Simple SQS message job
+
+ExampleSimpleSQSJob.php
+```php
+use Coverzen\ConfigurableSqs\Job\SimpleSQSJob;
+
+class ExampleSimpleSQSJob extends SimpleSQSJob
+{
+    protected string $event = 'example';
+
+    public function __construct($data)
+    {
+        parent::__construct($data);
+    }
+}
+
+```
+EventTrigger.php
+```php  
+use App\Jobs\ExampleSimpleSQSJob;
+
+class EventTrigger
+{
+    public function trigger()
+    {
+        ExampleSimpleSQSJob::dispatch([
+            'message' => 'test',
+        ]);
+    }
+}
+```
+
+When the `EventTrigger::trigger()` class is executed the `ExampleSimpleSQSJob` will be dispatched to queue trough sqs-configurable driver using a simple message payload as:
+```json
+{
+    "event": "example",
+    "data": {
+        "message": "test"
+    }
+}
+```
+
+## Sending only queue configuration
+If you want to send only the queue configuration, you need turn to false has_consumer configuration option.
+
+```php
+
+'connections' => [
+
+    ...
+    
+    'configurable-sqs-send-only' => [
+        'driver' => 'configurable-sqs',
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'prefix' => 'https://sqs.'.env('AWS_DEFAULT_REGION').'.amazonaws.com/'.env('AWS_ACCOUNT_ID').'/',
+        'queue' => 'your-queue-name',
+        'suffix' => '',
+        'region' => env('AWS_DEFAULT_REGION'),
+        'has_consumer' => false,
+    ],
+]
+
 ```
 
 ## License

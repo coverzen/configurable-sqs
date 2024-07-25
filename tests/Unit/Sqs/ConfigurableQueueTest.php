@@ -6,9 +6,13 @@ use Aws\Result;
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Sqs\ConfigurableQueue;
+use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleSimpleSQSJob;
+use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleStandardJob;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Support\Facades\Config;
 use Mockery;
+use ReflectionException;
+use ReflectionMethod;
 
 class ConfigurableQueueTest extends TestCase
 {
@@ -104,5 +108,91 @@ class ConfigurableQueueTest extends TestCase
 
         $result = $queue->pop(Config::get('queue.connections.test.queue'));
         $this->assertNull($result);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function it_has_consumer_disabled(): void
+    {
+        $queue = new ConfigurableQueue(
+            $this->sqs,
+            Config::get('queue.connections.test.queue'),
+            Config::get('queue.connections.test.prefix'),
+            '',
+            false,
+        );
+
+        $queue->setContainer($this->app);
+
+        $result = $queue->pop(Config::get('queue.connections.test.queue'));
+        $this->assertNull($result);
+    }
+
+    /**
+     * @test
+     * @throws ReflectionException
+     * @return void
+     */
+    public function it_can_create_simple_payload(): void
+    {
+        $queue = new ConfigurableQueue(
+            $this->sqs,
+            Config::get('queue.connections.test.queue'),
+            Config::get('queue.connections.test.prefix'),
+        );
+
+        $queue->setContainer($this->app);
+
+        $queueName = 'bar';
+        $content = [
+            'test' => 'test',
+        ];
+
+        $job = new ExampleSimpleSQSJob($content);
+
+        $method = new ReflectionMethod(
+            ConfigurableQueue::class,
+            'createPayload'
+        );
+        $method->setAccessible(true);
+
+        $result = $method->invokeArgs($queue, [$job, $queueName]);
+        $this->assertSame(json_encode([
+            'event' => 'example',
+            'data' => $content,
+        ]), $result);
+    }
+
+    /**
+     * @test
+     * @throws ReflectionException
+     * @return void
+     */
+    public function it_can_create_standard_payload(): void
+    {
+        $queue = new ConfigurableQueue(
+            $this->sqs,
+            Config::get('queue.connections.test.queue'),
+            Config::get('queue.connections.test.prefix'),
+        );
+
+        $queue->setContainer($this->app);
+
+        $queueName = 'bar';
+
+        $job = new ExampleStandardJob();
+
+        $method = new ReflectionMethod(
+            ConfigurableQueue::class,
+            'createPayload'
+        );
+        $method->setAccessible(true);
+
+        $result = $method->invokeArgs($queue, [$job, $queueName]);
+        $result = json_decode($result, true);
+        $this->assertSame('Coverzen\\ConfigurableSqs\\Tests\\Helpers\\ExampleStandardJob', $result['data']['commandName']);
+        $this->assertSame('Illuminate\\Queue\\CallQueuedHandler@call', $result['job']);
     }
 }

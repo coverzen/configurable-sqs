@@ -20,15 +20,17 @@ final class ConfigurableConnector extends SqsConnector implements ConnectorInter
     {
         $config = $this->getDefaultConfiguration($config);
 
-        if ($config['key'] && $config['secret']) {
-            $config['credentials'] = Arr::only($config, ['key', 'secret']);
+        if (!empty($config['key']) && !empty($config['secret'])) {
+            $config['credentials'] = Arr::only($config, ['key', 'secret', 'token']);
         }
 
         return new ConfigurableQueue(
             new SqsClient($config),
             $config['queue'],
             Arr::get($config, 'prefix', ''),
-            Arr::get($config, 'suffix', '')
+            Arr::get($config, 'suffix', ''),
+            (bool) Arr::get($config, 'has_consumer', true),
+            Arr::get($config, 'after_commit', false),
         );
     }
 }
