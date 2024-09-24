@@ -94,7 +94,14 @@ class ConfigurableJob extends SqsJob
 
     public function getQueue(): string
     {
-        return preg_replace('/https?:\/\/.*?\/[0-9]+\/([^\/]+)/', '$1', $this->queue);
+        return str_replace(
+            [
+                Config::get("queue.connections.{$this->connectionName}.suffix", ''),
+                Config::get("queue.connections.{$this->connectionName}.prefix", ''),
+            ],
+            '',
+            $this->queue
+        );
     }
 
     /**

@@ -35,7 +35,7 @@ final class ConfigurableQueue extends SqsQueue
         $prefix = '',
         $suffix = '',
         bool $hasConsumer = true,
-        bool $dispatchAfterCommit = false
+        bool $dispatchAfterCommit = false,
     ) {
         parent::__construct($sqs, $default, $prefix, $suffix, $dispatchAfterCommit);
         $this->hasConsumer = $hasConsumer;

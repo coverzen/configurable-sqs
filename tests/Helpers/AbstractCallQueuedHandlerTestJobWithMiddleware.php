@@ -9,7 +9,7 @@ abstract class AbstractCallQueuedHandlerTestJobWithMiddleware
     public function middleware(): array
     {
         return [
-            new class() {
+            new class {
                 public function handle($command, $next)
                 {
                     AbstractCallQueuedHandlerTestJobWithMiddleware::$middlewareCommand = $command;
