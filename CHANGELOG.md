@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/coverzen/configurable-sqs/compare/v1.1.0...v1.1.1) (2024-09-24)
+
+
+### Bug Fixes
+
+* Fix name queue getter into job ([2338294](https://github.com/coverzen/configurable-sqs/commit/23382949e160490e46c2dc2ebced4c876faa4764))
+
 # [1.1.0](https://github.com/coverzen/configurable-sqs/compare/v1.0.0...v1.1.0) (2024-07-25)
 
 
