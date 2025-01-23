@@ -7,9 +7,14 @@ use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Sqs\ConfigurableConnector;
 use Coverzen\ConfigurableSqs\Tests\Helpers\CallQueuedHandlerTestJob;
+use Coverzen\ConfigurableSqs\Tests\Helpers\Events\TestEvent;
+use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListener;
+use Coverzen\ConfigurableSqs\Tests\Helpers\Model\TestModel;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Queue\QueueManager;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 
 class DispatchJobTest extends TestCase
 {
@@ -104,6 +109,26 @@ class DispatchJobTest extends TestCase
         $this->artisan('queue:work', ['--once' => true]);
         $this->assertTrue(CallQueuedHandlerTestJob::$handled);
         $this->assertSame(['key' => 'test'], CallQueuedHandlerTestJob::$data);
+    }
+
+    /**
+     * @test
+     */
+    public function dispatch_standard_job(): void
+    {
+
+
+        Config::set("configurable-sqs.{$this->queueName}", []);
+
+        Event::listen(TestEvent::class, TestListener::class);
+
+        $model = new TestModel("pippo");
+
+        TestEvent::dispatch($model);
+
+        //$this->artisan('queue:work', ['--once' => true]);
+        $this->withoutMockingConsoleOutput()->artisan('queue:work', ['--once' => true, '-vvv' => true]);
+        dump(Artisan::output());
     }
 
     /**
