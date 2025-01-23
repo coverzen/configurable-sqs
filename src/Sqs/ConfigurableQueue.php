@@ -5,6 +5,7 @@ namespace Coverzen\ConfigurableSqs\Sqs;
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Job\SimpleSQSJob;
+use Illuminate\Events\CallQueuedListener;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\SqsQueue;
 
@@ -39,6 +40,22 @@ final class ConfigurableQueue extends SqsQueue
     ) {
         parent::__construct($sqs, $default, $prefix, $suffix, $dispatchAfterCommit);
         $this->hasConsumer = $hasConsumer;
+    }
+
+    public function push($job, $data = '', $queue = null): string
+    {
+        if ($job instanceof CallQueuedListener) {
+            $result = true;
+
+            if (method_exists($job->class, 'enqueueFilter')) {
+                $result = call_user_func([$job->class, 'enqueueFilter'], ...$job->data);
+            }
+            if ($result === false) {
+                return '';
+            }
+        }
+
+        return parent::push($job, $data, $queue);
     }
 
     /**
