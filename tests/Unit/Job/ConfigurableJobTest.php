@@ -6,6 +6,7 @@ use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Container\Container;
+use Illuminate\Queue\ManuallyFailedException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -262,6 +263,51 @@ class ConfigurableJobTest extends TestCase
             return $log->level === 'info' &&
                 $log->message === "Unmatched message for queue {$this->queueName}: {$encodedPayload}";
         });
+    }
+
+    /**
+     * @test
+     */
+    public function fail_standard_job()
+    {
+        $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
+            'QueueUrl' => $this->queueUrl,
+            'ReceiptHandle' => $this->mockedReceiptHandle,
+        ]);
+
+        $this->mock('foo', function (MockInterface $mock) {
+            $mock->shouldReceive('failed')->with(['data'], Mockery::type(ManuallyFailedException::class), Mockery::type('string'));
+        });
+
+        $job = $this->getJob(null, $this->app);
+        $job->fail(new ManuallyFailedException('Manually failed'));
+    }
+
+    /**
+     * @test
+     */
+    public function fail_key_value_job()
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => [
+                    'key' => 'key',
+                    'value' => 'value',
+                ],
+                'listener' => 'App\Listeners\MyListener',
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener', function (MockInterface $mock) {
+            $mock->shouldReceive('failed')->with(['key' => 'value'], Mockery::type(ManuallyFailedException::class), $this->mockedMessageId);
+        });
+        $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
+            'QueueUrl' => $this->queueUrl,
+            'ReceiptHandle' => $this->mockedReceiptHandle,
+        ]);
+
+        $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+        $job->fail(new ManuallyFailedException('Manually failed'));
     }
 
     protected function getJob($jobdata = null, $app = null)

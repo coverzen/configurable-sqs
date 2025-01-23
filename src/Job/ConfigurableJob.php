@@ -3,11 +3,18 @@
 namespace Coverzen\ConfigurableSqs\Job;
 
 use Exception;
+use Illuminate\Bus\Batchable;
+use Illuminate\Bus\BatchRepository;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Jobs\JobName;
 use Illuminate\Queue\Jobs\SqsJob;
+use Illuminate\Queue\ManuallyFailedException;
+use Illuminate\Queue\TimeoutExceededException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
+use Throwable;
 
 class ConfigurableJob extends SqsJob
 {
@@ -24,6 +31,84 @@ class ConfigurableJob extends SqsJob
     private string $jobName = self::TYPE_SQS_UNMATCHED_PAYLOAD;
     private ListenerEvent $listenerEvent;
 
+    public function getRawBody(): string
+    {
+        $rawArray = json_decode($this->job['Body'], true);
+
+        $returnArray = [];
+
+        if (!Arr::exists($rawArray, 'job')) {
+            $returnArray['uuid'] = $this->job['MessageId'];
+            $returnArray['data'] = $rawArray;
+            $returnArray['job'] = SimpleSQSJob::class;
+        } else {
+            $returnArray = $rawArray;
+        }
+
+        return json_encode($rawArray);
+    }
+
+    /**
+     * Delete the job, call the "failed" method, and raise the failed job event.
+     *
+     * @param  Throwable|null  $e
+     * @return void
+     */
+    public function fail($e = null): void
+    {
+        $this->markAsFailed();
+
+        if ($this->isDeleted()) {
+            return;
+        }
+
+        $commandName = Arr::get($this->payload(), 'data.commandName') ?? false;
+
+        if (
+            $e instanceof TimeoutExceededException &&
+            $commandName &&
+            in_array(Batchable::class, class_uses_recursive($commandName), true)
+        ) {
+            $batchRepository = $this->resolve(BatchRepository::class);
+
+            if (method_exists($batchRepository, 'rollBack')) {
+                try {
+                    $batchRepository->rollBack();
+                } catch (Throwable $e) {
+                    // ...
+                }
+            }
+        }
+
+        try {
+            $this->delete();
+
+            $this->failed($e);
+        } finally {
+            $this->resolve(Dispatcher::class)->dispatch(new JobFailed(
+                $this->connectionName,
+                $this,
+                $e ?: new ManuallyFailedException()
+            ));
+        }
+    }
+
+    /**
+     * @throws BindingResolutionException
+     */
+    protected function failed($e): void
+    {
+        $payload = $this->payload();
+        $uuid = $payload['uuid'] ?? $this->job['MessageId'];
+        $data = $payload['data'] ?? [
+            'commandName' => $this->command,
+        ];
+
+        if (method_exists($this->instance, 'failed')) {
+            $this->instance->failed($data, $e, $uuid);
+        }
+    }
+
     /**
      * @return array
      */
@@ -33,7 +118,8 @@ class ConfigurableJob extends SqsJob
             return $this->currentPayload;
         }
 
-        $this->handlerPayload = $this->currentPayload = parent::payload();
+        $this->handlerPayload = $this->currentPayload = json_decode($this->getRawBody(), true);
+
         $this->payloadAnalyseAndSetEventListener($this->handlerPayload);
 
         return $this->currentPayload;
@@ -124,7 +210,7 @@ class ConfigurableJob extends SqsJob
     {
         $stdJob = Arr::get($payload, 'job');
 
-        if ($stdJob) {
+        if ($stdJob && $stdJob !== SimpleSQSJob::class) {
             $this->jobName = $stdJob;
 
             [$class, $method] = JobName::parse($stdJob);
@@ -134,8 +220,8 @@ class ConfigurableJob extends SqsJob
 
             return;
         }
-
-        $this->getCommandConfiguration($payload);
+        $this->handlerPayload = $this->currentPayload = (Arr::get($payload, 'job') === SimpleSQSJob::class ? $payload['data'] : $payload);
+        $this->getCommandConfiguration($this->handlerPayload);
 
         $this->listenerEvent = new ListenerEvent($this->instance = $this->resolve(ConfigurableCallQueuedHandler::class), 'call');
     }
@@ -171,6 +257,7 @@ class ConfigurableJob extends SqsJob
                 $this->handlerPayload = json_decode(Arr::get($payload, 'Message'), true);
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
+                $this->instance = $this->resolve($this->command);
 
                 return;
             }
@@ -184,6 +271,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobType = $type;
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
+                $this->instance = $this->resolve($this->command);
 
                 return;
             }
@@ -197,6 +285,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobType = $type;
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
+                $this->instance = $this->resolve($this->command);
 
                 return;
             }
