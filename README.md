@@ -6,6 +6,7 @@
 
 This package provides a simple way to subscribe to an AWS SQS queue in Laravel.
 The package is designed to be as simple as possible to use, with a simple configuration for redirect any message to a specific listener.
+On Classic Laravel Listeners is possible add a `enqueueFilter` method to filter the message before the job is enqueued to SQS.
 
 
 ## Installation
@@ -130,6 +131,34 @@ When the `EventTrigger::trigger()` class is executed the `ExampleSimpleSQSJob` w
     "event": "example",
     "data": {
         "message": "test"
+    }
+}
+```
+
+## Filter message before job is enqueued
+You can add a `enqueueFilter` method to your listener class to filter the message before the job is enqueued to SQS.
+
+```php
+namespace App\Listeners;
+
+use App\Events\MyEvent;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class TestListener implements ShouldQueue
+{
+    use Queueable;
+
+    public static function enqueueFilter(MyEvent $event): bool
+    {
+        // Your logic here
+        // If you return false the job will not be enqueued
+        return true;
+    }
+
+    public function handle(MyEvent $event): bool
+    {
+        return true;
     }
 }
 ```

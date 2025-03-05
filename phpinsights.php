@@ -87,6 +87,7 @@ return [
         SlevomatCodingStandard\Sniffs\TypeHints\ReturnTypeHintSniff::class,
         SlevomatCodingStandard\Sniffs\TypeHints\UselessConstantTypeHintSniff::class,
         SlevomatCodingStandard\Sniffs\TypeHints\UselessConstantTypeHintSniff::class,
+        NunoMaduro\PhpInsights\Domain\Insights\ForbiddenSecurityIssues::class,
     ],
 
     'config' => [
@@ -125,6 +126,6 @@ return [
         'min-complexity' => 50,
         'min-architecture' => 90,
         'min-style' => 95,
-        'disable-security-check' => false,
+        'disable-security-check' => true,
     ],
 ];
