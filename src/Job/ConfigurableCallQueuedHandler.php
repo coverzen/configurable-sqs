@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\Job;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Queue\CallQueuedHandler;
+use Illuminate\Support\Arr;
 
 final class ConfigurableCallQueuedHandler extends CallQueuedHandler
 {
@@ -93,5 +94,34 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
 
                                                    return $command->handle($job->getHandlerPayload());
                                                });
+    }
+
+    /**
+     * @param array $data
+     * @param $e
+     * @param mixed $uuid
+     *
+     * @throws BindingResolutionException
+     * @return void
+     */
+    public function failed(array $data, $e, mixed $uuid): void
+    {
+        /** @var mixed $command */
+        $command = $this->container->make(Arr::get($data, 'commandName'));
+
+        if (!$command instanceof ShouldBeUniqueUntilProcessing) {
+            $this->ensureUniqueJobLockIsReleased($command);
+        }
+
+        if ($command instanceof __PHP_Incomplete_Class) {
+            return;
+        }
+
+        $this->ensureFailedBatchJobIsRecorded($uuid, $command, $e);
+        $this->ensureChainCatchCallbacksAreInvoked($uuid, $command, $e);
+
+        if (method_exists($command, 'failed')) {
+            $command->failed($e);
+        }
     }
 }

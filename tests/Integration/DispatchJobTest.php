@@ -9,6 +9,7 @@ use Coverzen\ConfigurableSqs\Sqs\ConfigurableConnector;
 use Coverzen\ConfigurableSqs\Tests\Helpers\CallQueuedHandlerTestJob;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Events\TestEvent;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListener;
+use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListenerFail;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListenerFilter;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Model\TestModel;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
@@ -126,6 +127,22 @@ class DispatchJobTest extends TestCase
         $this->withoutMockingConsoleOutput()->artisan('queue:work', ['--once' => true, '-vvv' => true]);
 
         $this->assertMatchesRegularExpression('/^(.*?)TestListener (.*?) DONE\\n$/m', Artisan::output());
+    }
+
+    /**
+     * @test
+     */
+    public function dispatch_standard_job_and_fail(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", []);
+
+        Event::listen(TestEvent::class, TestListenerFail::class);
+
+        TestEvent::dispatch(new TestModel('test'));
+
+        $this->withoutMockingConsoleOutput()->artisan('queue:work', ['--once' => true, '-vvv' => true]);
+
+        $this->assertMatchesRegularExpression('/^(.*?)TestListenerFail (.*?) FAIL\\n$/m', Artisan::output());
     }
 
     /**
