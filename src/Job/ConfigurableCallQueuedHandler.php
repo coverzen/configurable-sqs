@@ -96,9 +96,19 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
                                                });
     }
 
+    /**
+     * @param array $data
+     * @param $e
+     * @param mixed $uuid
+     *
+     * @throws BindingResolutionException
+     * @return void
+     */
     public function failed(array $data, $e, mixed $uuid): void
     {
+        /** @var mixed $command */
         $command = $this->container->make(Arr::get($data, 'commandName'));
+
         if (!$command instanceof ShouldBeUniqueUntilProcessing) {
             $this->ensureUniqueJobLockIsReleased($command);
         }
