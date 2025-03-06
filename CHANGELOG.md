@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/coverzen/configurable-sqs/compare/v1.1.1...v1.2.0) (2025-03-05)
+
+
+### Bug Fixes
+
+* CI/CD actions ([f3107e9](https://github.com/coverzen/configurable-sqs/commit/f3107e99cc62561062b0cfdacf71114d2b9186ad))
+
+
+### Features
+
+* Add job enqueue filtering ([3aaa8bb](https://github.com/coverzen/configurable-sqs/commit/3aaa8bbace0b6e3a71e72e57c26f48ac2f46b8a5))
+* Listener filter ([9aa973b](https://github.com/coverzen/configurable-sqs/commit/9aa973bca5d338a5939aece94e58c5904301a84b))
+
 ## [1.1.1](https://github.com/coverzen/configurable-sqs/compare/v1.1.0...v1.1.1) (2024-09-24)
 
 
