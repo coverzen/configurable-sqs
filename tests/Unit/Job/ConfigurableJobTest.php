@@ -288,25 +288,37 @@ class ConfigurableJobTest extends TestCase
      */
     public function fail_key_value_job()
     {
-        Config::set("configurable-sqs.{$this->queueName}", [
+        Config::set(
+            "configurable-sqs.{$this->queueName}",
             [
-                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
-                'search' => [
-                    'key' => 'key',
-                    'value' => 'value',
+                [
+                    'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                    'search' => [
+                        'key' => 'key',
+                        'value' => 'value',
+                    ],
+                    'listener' => 'App\Listeners\MyListener',
                 ],
-                'listener' => 'App\Listeners\MyListener',
-            ],
-        ]);
+            ]
+        );
+
         $this->mock('App\Listeners\MyListener', function (MockInterface $mock) {
-            $mock->shouldReceive('failed')->with(['key' => 'value'], Mockery::type(ManuallyFailedException::class), $this->mockedMessageId);
+            $mock->shouldReceive('failed')
+                 ->with(
+                     ['key' => 'value'],
+                     Mockery::type(ManuallyFailedException::class),
+                     $this->mockedMessageId
+                 );
         });
+
         $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
             'QueueUrl' => $this->queueUrl,
             'ReceiptHandle' => $this->mockedReceiptHandle,
         ]);
 
+        /** @var ConfigurableJob $job */
         $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+
         $job->fail(new ManuallyFailedException('Manually failed'));
     }
 

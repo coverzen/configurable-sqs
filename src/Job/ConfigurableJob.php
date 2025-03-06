@@ -14,6 +14,8 @@ use Illuminate\Queue\ManuallyFailedException;
 use Illuminate\Queue\TimeoutExceededException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
+use JsonException;
 use Throwable;
 
 class ConfigurableJob extends SqsJob
@@ -31,9 +33,15 @@ class ConfigurableJob extends SqsJob
     private string $jobName = self::TYPE_SQS_UNMATCHED_PAYLOAD;
     private ListenerEvent $listenerEvent;
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws JsonException
+     */
     public function getRawBody(): string
     {
-        $rawArray = json_decode($this->job['Body'], true);
+        /** @var array<array-key, mixed> $rawArray */
+        $rawArray = json_decode(json: $this->job['Body'], associative: true, flags: JSON_THROW_ON_ERROR);
 
         $returnArray = [];
 
@@ -45,13 +53,15 @@ class ConfigurableJob extends SqsJob
             $returnArray = $rawArray;
         }
 
-        return json_encode($rawArray);
+        return json_encode($returnArray, JSON_THROW_ON_ERROR);
     }
 
     /**
      * Delete the job, call the "failed" method, and raise the failed job event.
      *
-     * @param  Throwable|null  $e
+     * @param Throwable|null $e
+     *
+     * @throws BindingResolutionException
      * @return void
      */
     public function fail($e = null): void
@@ -62,20 +72,22 @@ class ConfigurableJob extends SqsJob
             return;
         }
 
-        $commandName = Arr::get($this->payload(), 'data.commandName') ?? false;
+        /** @var string|null $commandName */
+        $commandName = Arr::get($this->payload(), 'data.commandName');
 
         if (
             $e instanceof TimeoutExceededException &&
             $commandName &&
             in_array(Batchable::class, class_uses_recursive($commandName), true)
         ) {
+            /** @var BatchRepository $batchRepository */
             $batchRepository = $this->resolve(BatchRepository::class);
 
             if (method_exists($batchRepository, 'rollBack')) {
                 try {
                     $batchRepository->rollBack();
                 } catch (Throwable $e) {
-                    // ...
+                    Log::error('Job RollBack fail: ' . $e->getMessage());
                 }
             }
         }
@@ -94,6 +106,7 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
+     * @param mixed $e
      * @throws BindingResolutionException
      */
     protected function failed($e): void
@@ -118,7 +131,7 @@ class ConfigurableJob extends SqsJob
             return $this->currentPayload;
         }
 
-        $this->handlerPayload = $this->currentPayload = json_decode($this->getRawBody(), true);
+        $this->handlerPayload = $this->currentPayload = json_decode(json: $this->getRawBody(), associative: true, flags: JSON_THROW_ON_ERROR);
 
         $this->payloadAnalyseAndSetEventListener($this->handlerPayload);
 
@@ -254,7 +267,7 @@ class ConfigurableJob extends SqsJob
                 Arr::get($config, 'arn') === $arn
             ) {
                 $this->jobType = $type;
-                $this->handlerPayload = json_decode(Arr::get($payload, 'Message'), true);
+                $this->handlerPayload = json_decode(json: Arr::get($payload, 'Message'), associative: true, flags: JSON_THROW_ON_ERROR);
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
