@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/coverzen/configurable-sqs/compare/v1.2.0...v1.2.1) (2025-03-07)
+
+
+### Bug Fixes
+
+* Fix crash on failed jobs ([26215af](https://github.com/coverzen/configurable-sqs/commit/26215af633fc67c98748c43267548e6a914fbfad))
+
 # [1.2.0](https://github.com/coverzen/configurable-sqs/compare/v1.1.1...v1.2.0) (2025-03-05)
 
 
