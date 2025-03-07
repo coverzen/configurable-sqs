@@ -131,7 +131,7 @@ class ConfigurableJob extends SqsJob
             return $this->currentPayload;
         }
 
-        $this->handlerPayload = $this->currentPayload = json_decode(json:$this->getRawBody(), associative: true, flags: JSON_THROW_ON_ERROR);
+        $this->handlerPayload = $this->currentPayload = json_decode(json: $this->getRawBody(), associative: true, flags: JSON_THROW_ON_ERROR);
 
         $this->payloadAnalyseAndSetEventListener($this->handlerPayload);
 
