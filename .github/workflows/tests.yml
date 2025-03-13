@@ -2,12 +2,24 @@ name: Tests
 on:
   workflow_call:
 
-
 jobs:
   tests:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    strategy:
+      fail-fast: true
+      matrix:
+        laravel: [ '10.*', '11.*' ]
+        stability: [ prefer-lowest, prefer-stable ]
+        include:
+          - laravel: '10.*'
+            testbench: '8.*'
+          - laravel: '11.*'
+            testbench: '9.*'
+
+    name: Laravel ${{ matrix.laravel }} - ${{ matrix.stability }}
 
     services:
       localstack:
@@ -43,7 +55,9 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Install Composer dependencies
-        run: composer install -n --prefer-dist
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Run tests
         run: composer test
