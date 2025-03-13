@@ -1,3 +1,12 @@
+## [1.2.2](https://github.com/coverzen/configurable-sqs/compare/v1.2.1...v1.2.2) (2025-03-13)
+
+
+### Bug Fixes
+
+* add matrix to workflow ([1d3a4a1](https://github.com/coverzen/configurable-sqs/commit/1d3a4a110217579cf17b14f6162ab4a27b9a45d3))
+* add support to Laravel 11 ([60aebe1](https://github.com/coverzen/configurable-sqs/commit/60aebe1b15780f2535af6a8d0c0e00bf3658e8ea))
+* allow both Laravel 10 and 11 ([db15aed](https://github.com/coverzen/configurable-sqs/commit/db15aed901e6e163eba5420a158b0dada70bbf2f))
+
 ## [1.2.1](https://github.com/coverzen/configurable-sqs/compare/v1.2.0...v1.2.1) (2025-03-07)
 
 
