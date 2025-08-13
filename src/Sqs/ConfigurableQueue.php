@@ -43,29 +43,6 @@ final class ConfigurableQueue extends SqsQueue
     }
 
     /**
-     * @param  mixed  $job
-     * @param  string  $data
-     * @param  string|null  $queue
-     *
-     * @return string
-     */
-    public function push($job, $data = '', $queue = null): string
-    {
-        if ($job instanceof CallQueuedListener) {
-            $result = true;
-
-            if (method_exists($job->class, 'enqueueFilter')) {
-                $result = call_user_func([$job->class, 'enqueueFilter'], ...$job->data);
-            }
-            if ($result === false) {
-                return '';
-            }
-        }
-
-        return parent::push($job, $data, $queue);
-    }
-
-    /**
      * {@inheritdoc}
      */
     protected function createPayload($job, $queue, $data = ''): false|string

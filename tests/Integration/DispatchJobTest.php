@@ -11,6 +11,7 @@ use Coverzen\ConfigurableSqs\Tests\Helpers\Events\TestEvent;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListener;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListenerFail;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListenerFilter;
+use Coverzen\ConfigurableSqs\Tests\Helpers\Listener\TestListenerShouldQueue;
 use Coverzen\ConfigurableSqs\Tests\Helpers\Model\TestModel;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Queue\QueueManager;
@@ -148,33 +149,33 @@ class DispatchJobTest extends TestCase
     /**
      * @test
      */
-    public function dispatch_standard_job_and_filter_true(): void
+    public function dispatch_standard_job_and_shouldQueue_true(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", []);
 
-        Event::listen(TestEvent::class, TestListenerFilter::class);
+        Event::listen(TestEvent::class, TestListenerShouldQueue::class);
 
         TestEvent::dispatch(new TestModel('test'));
 
         $this->withoutMockingConsoleOutput()->artisan('queue:work', ['--once' => true, '-vvv' => true]);
 
-        $this->assertMatchesRegularExpression('/^(.*?)TestListenerFilter (.*?) DONE\\n$/m', Artisan::output());
+        $this->assertMatchesRegularExpression('/^(.*?)TestListenerShouldQueue (.*?) DONE\\n$/m', Artisan::output());
     }
 
     /**
      * @test
      */
-    public function dispatch_standard_job_and_filter_false(): void
+    public function dispatch_standard_job_and_shouldQueue_false(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", []);
 
-        Event::listen(TestEvent::class, TestListenerFilter::class);
+        Event::listen(TestEvent::class, TestListenerShouldQueue::class);
 
         TestEvent::dispatch(new TestModel('test', false));
 
         $this->withoutMockingConsoleOutput()->artisan('queue:work', ['--once' => true, '-vvv' => true]);
 
-        $this->assertStringNotContainsString('TestListenerFilter', Artisan::output());
+        $this->assertStringNotContainsString('TestListenerShouldQueue', Artisan::output());
     }
 
     /**

@@ -6,11 +6,11 @@ use Coverzen\ConfigurableSqs\Tests\Helpers\Events\TestEvent;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class TestListenerFilter implements ShouldQueue
+class TestListenerShouldQueue implements ShouldQueue
 {
     use Queueable;
 
-    public static function enqueueFilter(TestEvent $event): bool
+    public static function shouldQueue(TestEvent $event): bool
     {
         return $event->model->toQueue();
     }
