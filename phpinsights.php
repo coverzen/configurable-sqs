@@ -58,6 +58,7 @@ return [
 
     'remove' => [
         NunoMaduro\PhpInsights\Domain\Insights\CyclomaticComplexityIsHigh::class,
+        NunoMaduro\PhpInsights\Domain\Insights\MethodCyclomaticComplexityIsHigh::class,
         NunoMaduro\PhpInsights\Domain\Insights\ForbiddenTraits::class,
         NunoMaduro\PhpInsights\Domain\Sniffs\ForbiddenSetterSniff::class,
         NunoMaduro\PhpInsights\Domain\Insights\ForbiddenNormalClasses::class,
@@ -91,12 +92,6 @@ return [
     ],
 
     'config' => [
-        SlevomatCodingStandard\Sniffs\Functions\UnusedParameterSniff::class => [
-            'exclude' => [
-                'app/Rules/QuoteRules.php',
-                'app/Rules/Validation/VatNumber.php',
-            ],
-        ],
         PhpCsFixer\Fixer\ClassNotation\OrderedClassElementsFixer::class => [
             'order' => [
                 'use_trait',

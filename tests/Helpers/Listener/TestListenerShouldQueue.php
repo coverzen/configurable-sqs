@@ -10,7 +10,7 @@ class TestListenerShouldQueue implements ShouldQueue
 {
     use Queueable;
 
-    public static function shouldQueue(TestEvent $event): bool
+    public static function shouldQueue(TestEvent $event): ?bool
     {
         return $event->model->toQueue();
     }

@@ -10,18 +10,19 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Queue\CallQueuedHandler;
 use Illuminate\Support\Arr;
+use Throwable;
 
 final class ConfigurableCallQueuedHandler extends CallQueuedHandler
 {
     /**
      * @phpcsSuppress SlevomatCodingStandard.Functions.UnusedParameter
      * @param ConfigurableJob $job
-     * @param array $data
+     * @param array<array-key, mixed> $data
      *
      * @throws Exception
-     * @return void|null
+     * @return void
      */
-    public function call($job, array $data)
+    public function call($job, array $data): void
     {
         try {
             $command = $this->setJobInstanceIfNecessary(
@@ -77,7 +78,7 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
     protected function dispatchThroughMiddleware(Job $job, $command): mixed
     {
         if ($command instanceof __PHP_Incomplete_Class) {
-            throw new Exception('Job is incomplete class: ' . json_encode($command));
+            throw new Exception('Job is incomplete class: ' . json_encode($command, JSON_THROW_ON_ERROR));
         }
 
         return (new Pipeline($this->container))->send($command)
@@ -97,14 +98,16 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
     }
 
     /**
-     * @param array $data
-     * @param $e
+     * @phpcsSuppress SlevomatCodingStandard.Functions.UnusedParameter
+     * @param array<array-key, mixed> $data
+     * @param Throwable|null $e
      * @param mixed $uuid
+     * @param Job|null $job *
      *
      * @throws BindingResolutionException
      * @return void
      */
-    public function failed(array $data, $e, mixed $uuid): void
+    public function failed(array $data, $e, mixed $uuid, ?Job $job = null): void
     {
         /** @var mixed $command */
         $command = $this->container->make(Arr::get($data, 'commandName'));

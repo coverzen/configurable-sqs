@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class CallQueuedHandlerExceptionThrower
 {
-    public $deleteWhenMissingModels = true;
+    public bool $deleteWhenMissingModels = true;
 
-    public function handle()
+    public function handle(): void
     {
     }
 

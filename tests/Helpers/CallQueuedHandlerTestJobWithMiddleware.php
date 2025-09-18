@@ -10,7 +10,7 @@ class CallQueuedHandlerTestJobWithMiddleware extends AbstractCallQueuedHandlerTe
     use InteractsWithQueue;
     use Queueable;
 
-    public static $handled = false;
+    public static bool $handled = false;
 
     public function handle(): void
     {

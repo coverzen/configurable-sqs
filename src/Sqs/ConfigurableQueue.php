@@ -5,9 +5,9 @@ namespace Coverzen\ConfigurableSqs\Sqs;
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Job\SimpleSQSJob;
-use Illuminate\Events\CallQueuedListener;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\SqsQueue;
+use JsonException;
 
 final class ConfigurableQueue extends SqsQueue
 {
@@ -44,8 +44,16 @@ final class ConfigurableQueue extends SqsQueue
 
     /**
      * {@inheritdoc}
+     * @phpcsSuppress SlevomatCodingStandard.Functions.UnusedParameter
+     *
+     * @param Closure|object|string $job
+     * @param string $queue
+     * @param string $data
+     * @param null $delay
+     *
+     * @throws JsonException
      */
-    protected function createPayload($job, $queue, $data = ''): false|string
+    protected function createPayload($job, $queue, $data = '', $delay = null): string
     {
         if (!$job instanceof SimpleSQSJob) {
             return parent::createPayload($job, $queue, $data);
@@ -56,10 +64,7 @@ final class ConfigurableQueue extends SqsQueue
             'data' => $job->getPayload(),
         ];
 
-        $json = json_encode(
-            $jsonPayload,
-            JSON_UNESCAPED_UNICODE
-        );
+        $json = json_encode($jsonPayload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new InvalidPayloadException('Unable to JSON encode payload. Error (' . json_last_error() . '): ' . json_last_error_msg(), $jsonPayload);

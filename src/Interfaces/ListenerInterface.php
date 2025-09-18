@@ -10,7 +10,7 @@ interface ListenerInterface
     /**
      * Handle the payload.
      *
-     * @param array $payload the payload of sqs message
+     * @param array<array-key, mixed> $payload the payload of sqs message
      *
      * @return void
      */

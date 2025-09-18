@@ -9,21 +9,18 @@ use Coverzen\ConfigurableSqs\Tests\Helpers\CallQueuedHandlerExceptionThrower;
 use Coverzen\ConfigurableSqs\Tests\Helpers\CallQueuedHandlerTestJob;
 use Coverzen\ConfigurableSqs\Tests\Helpers\CallQueuedHandlerTestJobWithMiddleware;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
-use Exception;
 use Illuminate\Bus\Dispatcher;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use TiMacDonald\Log\LogEntry;
 use TiMacDonald\Log\LogFake;
 
 class ConfigurableCallQueuedHandlerTest extends TestCase
 {
-    /**
-     * @test
-     * @throws Exception
-     */
+    #[Test]
     public function it_can_handle_a_job(): void
     {
         CallQueuedHandlerTestJob::$handled = false;
@@ -45,10 +42,7 @@ class ConfigurableCallQueuedHandlerTest extends TestCase
         $this->assertTrue(CallQueuedHandlerTestJob::$handled);
     }
 
-    /**
-     * @test
-     * @throws Exception
-     */
+    #[Test]
     public function it_can_handle_a_job_with_middleware(): void
     {
         CallQueuedHandlerTestJobWithMiddleware::$handled = false;
@@ -68,14 +62,12 @@ class ConfigurableCallQueuedHandlerTest extends TestCase
 
         $instance->call($job, ['key' => 'value']);
 
+        /** @phpstan-ignore method.impossibleType */
         $this->assertInstanceOf(CallQueuedHandlerTestJobWithMiddleware::class, CallQueuedHandlerTestJobWithMiddleware::$middlewareCommand);
         $this->assertTrue(CallQueuedHandlerTestJobWithMiddleware::$handled);
     }
 
-    /**
-     * @test
-     * @throws Exception
-     */
+    #[Test]
     public function it_can_handle_a_job_and_delete_when_missing_models(): void
     {
         Event::fake();
@@ -97,10 +89,7 @@ class ConfigurableCallQueuedHandlerTest extends TestCase
         Event::assertNotDispatched(JobFailed::class);
     }
 
-    /**
-     * @test
-     * @throws Exception
-     */
+    #[Test]
     public function it_can_log_an_unmatched_payload(): void
     {
         LogFake::bind();
@@ -121,6 +110,7 @@ class ConfigurableCallQueuedHandlerTest extends TestCase
 
         $instance->call($job, ['key' => 'value']);
 
+        /** @phpstan-ignore staticMethod.notFound */
         Log::assertLogged(fn (LogEntry $log) => $log->level === 'info' &&
             $log->message === 'Unmatched message for queue test-logger: {"key":"value"}');
     }

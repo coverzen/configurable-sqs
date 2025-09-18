@@ -27,9 +27,9 @@ class SimpleSQSJob implements ShouldQueue
 
     /**
      * DispachableJob constructor.
-     * @param $data
+     * @param mixed $data
      */
-    public function __construct($data)
+    public function __construct(mixed $data)
     {
         $this->data = $data;
     }
@@ -47,7 +47,7 @@ class SimpleSQSJob implements ShouldQueue
     /**
      * @return mixed
      */
-    public function getPayload()
+    public function getPayload(): mixed
     {
         return $this->data;
     }

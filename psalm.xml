@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<psalm
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    errorLevel="5"
+    findUnusedCode="true"
+    findUnusedBaselineEntry="true"
+    UnnecessaryVarAnnotation="false"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="src"/>
+        <ignoreFiles>
+            <directory name="vendor"/>
+        </ignoreFiles>
+    </projectFiles>
+
+    <issueHandlers>
+        <UnnecessaryVarAnnotation errorLevel="suppress"/>
+        <PossiblyUnusedMethod errorLevel="suppress"/>
+        <UnusedClass errorLevel="suppress"/>
+        <MissingOverrideAttribute errorLevel="suppress"/>
+        <MoreSpecificImplementedParamType>
+            <errorLevel type="suppress">
+                <file name="src/Job/ConfigurableCallQueuedHandler.php" />
+                <file name="src/Sqs/ConfigurableQueue.php" />
+            </errorLevel>
+        </MoreSpecificImplementedParamType>
+        <PossiblyUnusedReturnValue>
+            <errorLevel type="suppress">
+                <file name="src/Job/ConfigurableCallQueuedHandler.php" />
+            </errorLevel>
+        </PossiblyUnusedReturnValue>
+    </issueHandlers>
+
+    <plugins>
+        <pluginClass class="Psalm\LaravelPlugin\Plugin"/>
+    </plugins>
+</psalm>

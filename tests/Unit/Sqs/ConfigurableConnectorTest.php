@@ -9,6 +9,7 @@ use Coverzen\ConfigurableSqs\Tests\TestCase;
 use GuzzleHttp\Psr7\Uri;
 use Illuminate\Queue\QueueManager;
 use Illuminate\Support\Facades\Config;
+use PHPUnit\Framework\Attributes\Test;
 
 class ConfigurableConnectorTest extends TestCase
 {
@@ -23,19 +24,13 @@ class ConfigurableConnectorTest extends TestCase
         $this->manager->addConnector('configurable-sqs', fn () => new ConfigurableConnector());
     }
 
-    /**
-     * @test
-     * @return void
-     */
+    #[Test]
     public function it_can_use_connector(): void
     {
         $this->assertInstanceOf(ConfigurableQueue::class, $this->manager->connection('test'));
     }
 
-    /**
-     * @test
-     * @return void
-     */
+    #[Test]
     public function it_can_connect_to_sqs(): void
     {
         $this->assertInstanceOf(ConfigurableQueue::class, $this->manager->connection('test'));

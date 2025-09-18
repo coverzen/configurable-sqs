@@ -9,9 +9,14 @@ class CallQueuedHandlerTestJob
     use InteractsWithQueue;
 
     public static bool $handled = false;
+
+    /** @var array<array-key, mixed> $data */
     public static array $data = [];
 
-    public function handle($data): void
+    /**
+     * @param array<array-key, mixed> $data
+     */
+    public function handle(array $data): void
     {
         static::$handled = true;
         static::$data = $data;

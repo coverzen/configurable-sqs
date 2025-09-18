@@ -108,5 +108,9 @@ return $config->setUsingCache(true)
                       'native_constant_invocation' => [
                           'fix_built_in' => false,
                       ],
+                      'new_with_parentheses' => [
+                          'anonymous_class' => true,
+                          'named_class' => true
+                      ],
                   ]
               );
