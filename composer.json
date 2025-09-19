@@ -8,25 +8,29 @@
         "email": "francesco.giovannini@coverzen.it"
     }],
     "require": {
-        "php": "^8.2",
+        "php": "8.2.* || 8.3.*",
+        "illuminate/support": "^11.0 || ^12.0",
         "aws/aws-sdk-php": "^3.304"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.53",
+        "friendsofphp/php-cs-fixer": "^3.87",
+        "larastan/larastan": "^3.0",
         "nunomaduro/phpinsights": "^2.11",
-        "orchestra/testbench": "^8.22||^9.11",
-        "pestphp/pest": "^2.34",
-        "pestphp/pest-plugin-arch": "^2.7",
-        "pestphp/pest-plugin-laravel": "^2.3",
+        "orchestra/testbench": "^9.0 || ^10",
+        "pestphp/pest": "^3.8",
+        "pestphp/pest-plugin-arch": "^3.1.1",
+        "pestphp/pest-plugin-laravel": "^3.2.0",
         "phpmd/phpmd": "^2.15",
-        "phpstan/extension-installer": "^1.3",
-        "phpstan/phpstan": "^1.10",
-        "phpstan/phpstan-mockery": "^1.1",
-        "phpstan/phpstan-phpunit": "^1.3",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-mockery": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
         "povils/phpmnd": "^3.4",
+        "psalm/plugin-laravel": "^3.0",
         "roave/security-advisories": "dev-latest",
         "squizlabs/php_codesniffer": "^3.9",
-        "timacdonald/log-fake": "^2.2"
+        "timacdonald/log-fake": "^2.2",
+        "vimeo/psalm": "^6.0"
     },
     "autoload": {
         "psr-4": {
@@ -41,7 +45,8 @@
             "@insights",
             "@md",
             "@mnd",
-            "@stan"
+            "@stan",
+            "@psalm"
         ],
         "test": "vendor/bin/pest",
         "cs": "vendor/bin/phpcs",
@@ -50,7 +55,8 @@
         "insights": "vendor/bin/phpinsights",
         "md": "vendor/bin/phpmd --cache src text phpmd.xml",
         "mnd": "vendor/bin/phpmnd --extensions=all,-property --allow-array-mapping src",
-        "stan": "vendor/bin/phpstan analyse -v --no-interaction --memory-limit=1G"
+        "stan": "vendor/bin/phpstan analyse -v --no-interaction --memory-limit=1G",
+        "psalm": "./vendor/bin/psalm"
     },
     "extra": {
         "laravel": {

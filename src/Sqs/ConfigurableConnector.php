@@ -12,7 +12,7 @@ final class ConfigurableConnector extends SqsConnector implements ConnectorInter
     /**
      * Establish a queue connection.
      *
-     * @param array $config
+     * @param array<array-key, mixed> $config
      *
      * @return ConfigurableQueue
      */

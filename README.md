@@ -135,34 +135,6 @@ When the `EventTrigger::trigger()` class is executed the `ExampleSimpleSQSJob` w
 }
 ```
 
-## Filter message before job is enqueued
-You can add a `enqueueFilter` method to your listener class to filter the message before the job is enqueued to SQS.
-
-```php
-namespace App\Listeners;
-
-use App\Events\MyEvent;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-
-class TestListener implements ShouldQueue
-{
-    use Queueable;
-
-    public static function enqueueFilter(MyEvent $event): bool
-    {
-        // Your logic here
-        // If you return false the job will not be enqueued
-        return true;
-    }
-
-    public function handle(MyEvent $event): bool
-    {
-        return true;
-    }
-}
-```
-
 ## Sending only queue configuration
 If you want to send only the queue configuration, you need turn to false has_consumer configuration option.
 

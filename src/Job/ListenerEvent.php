@@ -2,13 +2,13 @@
 
 namespace Coverzen\ConfigurableSqs\Job;
 
-final class ListenerEvent
+final readonly class ListenerEvent
 {
-    public function __construct(private $class, private readonly string $method)
+    public function __construct(private mixed $class, private string $method)
     {
     }
 
-    public function getClass()
+    public function getClass(): mixed
     {
         return $this->class;
     }

@@ -4,7 +4,7 @@ namespace Coverzen\ConfigurableSqs\Tests\Helpers\Model;
 
 class TestModel
 {
-    public function __construct(private string $name, private ?bool $toQueue = true)
+    public function __construct(private readonly string $name, private readonly ?bool $toQueue = true)
     {
     }
 
@@ -13,7 +13,7 @@ class TestModel
         return $this->name;
     }
 
-    public function toQueue(): bool
+    public function toQueue(): ?bool
     {
         return $this->toQueue;
     }

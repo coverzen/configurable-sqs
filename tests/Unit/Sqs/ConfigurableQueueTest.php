@@ -11,38 +11,43 @@ use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleStandardJob;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Support\Facades\Config;
 use Mockery;
-use ReflectionException;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionMethod;
 
 class ConfigurableQueueTest extends TestCase
 {
+    private SqsClient|Mockery\MockInterface $sqs;
+
+    private Result $mockedReceiveMessageResponseModel;
+    private Result $mockedReceiveEmptyMessageResponseModel;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->sqs = Mockery::mock(SqsClient::class);
-        $this->mockedJob = 'foo';
-        $this->mockedData = ['data'];
-        $this->mockedPayload = json_encode(['job' => $this->mockedJob, 'data' => $this->mockedData]);
+        $mockedJob = 'foo';
+        $mockedData = ['data'];
+        $mockedPayload = json_encode(['job' => $mockedJob, 'data' => $mockedData], JSON_THROW_ON_ERROR);
         $this->mockedDelay = 10;
-        $this->mockedMessageId = 'e3cd03ee-59a3-4ad8-b0aa-ee2e3808ac81';
-        $this->mockedReceiptHandle = '0NNAq8PwvXuWv5gMtS9DJ8qEdyiUwbAjpp45w2m6M4SJ1Y+PxCh7R930NRB8ylSacEmoSnW18bgd4nK\/O6ctE+VFVul4eD23mA07vVoSnPI4F\/voI1eNCp6Iax0ktGmhlNVzBwaZHEr91BRtqTRM3QKd2ASF8u+IQaSwyl\/DGK+P1+dqUOodvOVtExJwdyDLy1glZVgm85Yw9Jf5yZEEErqRwzYz\/qSigdvW4sm2l7e4phRol\/+IjMtovOyH\/ukueYdlVbQ4OshQLENhUKe7RNN5i6bE\/e5x9bnPhfj2gbM';
+        $mockedMessageId = 'e3cd03ee-59a3-4ad8-b0aa-ee2e3808ac81';
+        $mockedReceiptHandle = '0NNAq8PwvXuWv5gMtS9DJ8qEdyiUwbAjpp45w2m6M4SJ1Y+PxCh7R930NRB8ylSacEmoSnW18bgd4nK\/O6ctE+VFVul4eD23mA07vVoSnPI4F\/voI1eNCp6Iax0ktGmhlNVzBwaZHEr91BRtqTRM3QKd2ASF8u+IQaSwyl\/DGK+P1+dqUOodvOVtExJwdyDLy1glZVgm85Yw9Jf5yZEEErqRwzYz\/qSigdvW4sm2l7e4phRol\/+IjMtovOyH\/ukueYdlVbQ4OshQLENhUKe7RNN5i6bE\/e5x9bnPhfj2gbM';
 
         $this->mockedSendMessageResponseModel = new Result([
-            'Body' => $this->mockedPayload,
-            'MD5OfBody' => md5($this->mockedPayload),
-            'ReceiptHandle' => $this->mockedReceiptHandle,
-            'MessageId' => $this->mockedMessageId,
+            'Body' => $mockedPayload,
+            'MD5OfBody' => md5($mockedPayload),
+            'ReceiptHandle' => $mockedReceiptHandle,
+            'MessageId' => $mockedMessageId,
             'Attributes' => ['ApproximateReceiveCount' => 1],
         ]);
 
         $this->mockedReceiveMessageResponseModel = new Result([
             'Messages' => [
                 0 => [
-                    'Body' => $this->mockedPayload,
-                    'MD5OfBody' => md5($this->mockedPayload),
-                    'ReceiptHandle' => $this->mockedReceiptHandle,
-                    'MessageId' => $this->mockedMessageId,
+                    'Body' => $mockedPayload,
+                    'MD5OfBody' => md5($mockedPayload),
+                    'ReceiptHandle' => $mockedReceiptHandle,
+                    'MessageId' => $mockedMessageId,
                 ],
             ],
         ]);
@@ -58,10 +63,7 @@ class ConfigurableQueueTest extends TestCase
         ]);
     }
 
-    /**
-     * @test
-     * @return void
-     */
+    #[Test]
     public function it_can_pop_message(): void
     {
         $queue = new ConfigurableQueue(
@@ -75,7 +77,7 @@ class ConfigurableQueueTest extends TestCase
         $this->sqs->shouldReceive('receiveMessage')
                   ->once()
                   ->with([
-                      'QueueUrl' => Config::get('queue.connections.test.prefix') . Config::get('queue.connections.test.queue'),
+                      'QueueUrl' => Config::get('queue.connections.test.prefix') . Config::get('queue.connections.test.queue'), // @phpstan-ignore binaryOp.invalid
                       'AttributeNames' => ['ApproximateReceiveCount'],
                   ])
                   ->andReturn($this->mockedReceiveMessageResponseModel);
@@ -84,10 +86,7 @@ class ConfigurableQueueTest extends TestCase
         $this->assertInstanceOf(ConfigurableJob::class, $result);
     }
 
-    /**
-     * @test
-     * @return void
-     */
+    #[Test]
     public function it_can_pop_empty_message(): void
     {
         $queue = new ConfigurableQueue(
@@ -101,7 +100,7 @@ class ConfigurableQueueTest extends TestCase
         $this->sqs->shouldReceive('receiveMessage')
                   ->once()
                   ->with([
-                      'QueueUrl' => Config::get('queue.connections.test.prefix') . Config::get('queue.connections.test.queue'),
+                      'QueueUrl' => Config::get('queue.connections.test.prefix') . Config::get('queue.connections.test.queue'), // @phpstan-ignore binaryOp.invalid
                       'AttributeNames' => ['ApproximateReceiveCount'],
                   ])
                   ->andReturn($this->mockedReceiveEmptyMessageResponseModel);
@@ -110,10 +109,7 @@ class ConfigurableQueueTest extends TestCase
         $this->assertNull($result);
     }
 
-    /**
-     * @test
-     * @return void
-     */
+    #[Test]
     public function it_has_consumer_disabled(): void
     {
         $queue = new ConfigurableQueue(
@@ -130,11 +126,7 @@ class ConfigurableQueueTest extends TestCase
         $this->assertNull($result);
     }
 
-    /**
-     * @test
-     * @throws ReflectionException
-     * @return void
-     */
+    #[Test]
     public function it_can_create_simple_payload(): void
     {
         $queue = new ConfigurableQueue(
@@ -165,11 +157,7 @@ class ConfigurableQueueTest extends TestCase
         ]), $result);
     }
 
-    /**
-     * @test
-     * @throws ReflectionException
-     * @return void
-     */
+    #[Test]
     public function it_can_create_standard_payload(): void
     {
         $queue = new ConfigurableQueue(

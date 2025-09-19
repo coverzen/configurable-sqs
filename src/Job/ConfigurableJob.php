@@ -26,7 +26,9 @@ class ConfigurableJob extends SqsJob
     public const TYPE_SQS_REGEX_PAYLOAD = 'regex-payload';
     public const TYPE_SQS_UNMATCHED_PAYLOAD = 'unmatched-payload';
 
+    /** @var array<array-key, mixed>  $currentPayload */
     private array $currentPayload = [];
+    /** @var array<array-key, mixed>  $handlerPayload */
     private array $handlerPayload = [];
     private string $command;
     private string $jobType = self::TYPE_LARAVEL;
@@ -61,7 +63,7 @@ class ConfigurableJob extends SqsJob
      *
      * @param Throwable|null $e
      *
-     * @throws BindingResolutionException
+     * @throws BindingResolutionException|JsonException
      * @return void
      */
     public function fail($e = null): void
@@ -123,7 +125,8 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
-     * @return array
+     * @throws JsonException
+     * @return array<array-key, mixed>
      */
     public function payload(): array
     {
@@ -139,7 +142,7 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
-     * @return array
+     * @return array<array-key, mixed>
      */
     public function getHandlerPayload(): array
     {
@@ -184,17 +187,18 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
-     * @return array|bool|null
+     * @return array<array-key,mixed>|bool|null
      */
     public function getUnmatchedListener(): array|bool|null
     {
+        /** @phpstan-ignore return.type */
         return Config::get("queue.connections.{$this->connectionName}.unmatched_listener");
     }
 
     public function getQueue(): string
     {
         return str_replace(
-            [
+            [// @phpstan-ignore-line
                 Config::get("queue.connections.{$this->connectionName}.suffix", ''),
                 Config::get("queue.connections.{$this->connectionName}.prefix", ''),
             ],
@@ -215,8 +219,9 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
-     * @param array $payload
+     * @param array<array-key, mixed> $payload
      *
+     * @throws JsonException
      * @return void
      */
     protected function payloadAnalyseAndSetEventListener(array $payload): void
@@ -240,19 +245,22 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
-     * @param array $payload
+     * @param array<array-key, mixed> $payload
+     *
+     * @throws JsonException
      * @return void
      */
     private function getCommandConfiguration(array $payload): void
     {
         $this->jobType = self::TYPE_SQS_UNMATCHED_PAYLOAD;
-        $this->command = Arr::get($this->getUnmatchedListener(), 'listener', null) ?? LogMessageListener::class;
+        $this->command = Arr::get($this->getUnmatchedListener(), 'listener', null) ?? LogMessageListener::class; // @phpstan-ignore-line
 
         /** @var string $arn */
         $arn = Arr::get($payload, 'TopicArn');
 
         $configName = "configurable-sqs.{$this->getQueue()}";
 
+        /** @var array<array-key, mixed> $configs */
         $configs = Config::get($configName, []);
 
         foreach ($configs as $config) {

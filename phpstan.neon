@@ -1,6 +1,26 @@
 parameters:
     paths:
         - src
-    # The level 9 is the highest level
-    level: 5
+        - tests
+
+    # The level 10 is the highest level
+    level: 10
+    excludePaths:
     tmpDir: ./.phpstan.cache
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+         -
+              messages:
+                  - '#mixed given\.#'
+                  - '#\) on class-string\|object\.#'
+                  - '#\ on mixed\.#'
+                  - '#\) expects Throwable, Throwable\|null given\.#'
+                  - '#\) does not accept mixed\.#'
+                  - '#Cannot call method.*?\|null\.#'
+                  - '#Illuminate\\Foundation\\Application\|null given\.#'
+                  - '#\:\:shouldReceive\(\)\.#'
+                  - '#\:\:assertLogged\(\).#'
+                  - '#Mockery\\MockInterface given\.#'
+                  - '#type has no value type specified in iterable type Aws\\Result\.#'
+                  - '#Access to an undefined property Coverzen\\ConfigurableSqs\\Tests\\Unit\\Sqs\\ConfigurableQueueTest#'

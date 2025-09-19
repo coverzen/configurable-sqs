@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
+use PHPUnit\Framework\Attributes\Test;
 use stdClass;
 use TiMacDonald\Log\LogEntry;
 use TiMacDonald\Log\LogFake;
@@ -25,28 +26,26 @@ class ConfigurableJobTest extends TestCase
 
     private Container|MockInterface $mockedContainer;
 
-    private string $mockedJob;
-
-    private array $mockedData;
-
-    private string $mockedPayload;
-
     private string $mockedMessageId;
 
     private string $mockedReceiptHandle;
 
+    /** @var array<array-key, mixed> */
     private array $mockedJobData;
 
+    /** @var array<array-key, mixed> */
     private array $mockedPlainSnsPayload;
 
-    private string $mockedSnsPayload;
-
+    /** @var array<array-key, mixed> */
     private array $mockedSnsJobData;
 
+    /** @var array<array-key, mixed> */
     private array $mockedJobStrictKeyData;
 
+    /** @var array<array-key, mixed> */
     private array $mockedRegexPayload;
 
+    /** @var array<array-key, mixed> */
     private array $mockedJobRegexKeyData;
 
     protected function setUp(): void
@@ -55,21 +54,21 @@ class ConfigurableJobTest extends TestCase
 
         $this->queueName = Config::get('queue.connections.test.queue');
 
-        $this->queueUrl = Config::get('queue.connections.test.prefix') . $this->queueName;
+        $this->queueUrl = Config::get('queue.connections.test.prefix') . $this->queueName; // @phpstan-ignore binaryOp.invalid
 
         $this->mockedSqsClient = Mockery::mock(SqsClient::class)->makePartial();
 
         $this->mockedContainer = Mockery::mock(Container::class);
 
-        $this->mockedJob = 'foo';
-        $this->mockedData = ['data'];
-        $this->mockedPayload = json_encode(['job' => $this->mockedJob, 'data' => $this->mockedData, 'attempts' => 1]);
+        $mockedJob = 'foo';
+        $mockedData = ['data'];
+        $mockedPayload = json_encode(['job' => $mockedJob, 'data' => $mockedData, 'attempts' => 1]);
         $this->mockedMessageId = 'e3cd03ee-59a3-4ad8-b0aa-ee2e3808ac81';
         $this->mockedReceiptHandle = '0NNAq8PwvXuWv5gMtS9DJ8qEdyiUwbAjpp45w2m6M4SJ1Y+PxCh7R930NRB8ylSacEmoSnW18bgd4nK\/O6ctE+VFVul4eD23mA07vVoSnPI4F\/voI1eNCp6Iax0ktGmhlNVzBwaZHEr91BRtqTRM3QKd2ASF8u+IQaSwyl\/DGK+P1+dqUOodvOVtExJwdyDLy1glZVgm85Yw9Jf5yZEEErqRwzYz\/qSigdvW4sm2l7e4phRol\/+IjMtovOyH\/ukueYdlVbQ4OshQLENhUKe7RNN5i6bE\/e5x9bnPhfj2gbM';
 
         $this->mockedJobData = [
-            'Body' => $this->mockedPayload,
-            'MD5OfBody' => md5($this->mockedPayload),
+            'Body' => $mockedPayload,
+            'MD5OfBody' => md5($mockedPayload), // @phpstan-ignore argument.type
             'ReceiptHandle' => $this->mockedReceiptHandle,
             'MessageId' => $this->mockedMessageId,
             'Attributes' => ['ApproximateReceiveCount' => 1],
@@ -97,7 +96,7 @@ class ConfigurableJobTest extends TestCase
             ],
         ];
 
-        $this->mockedSnsPayload = json_encode([
+        $mockedSnsPayload = json_encode([
             'Type' => 'Notification',
             'MessageId' => 'e3cd03ee-59a3-4ad8-b0aa-ee2e3808ac81',
             'TopicArn' => 'arn:aws:sns:eu-south-1:000000000000:MyTopic',
@@ -108,19 +107,19 @@ class ConfigurableJobTest extends TestCase
             'Signature' => 'EXAMPLE',
             'SigningCertURL' => 'EXAMPLE',
             'UnsubscribeURL' => 'EXAMPLE',
-        ]);
+        ], JSON_THROW_ON_ERROR);
 
         $this->mockedSnsJobData = [
-            'Body' => $this->mockedSnsPayload,
-            'MD5OfBody' => md5($this->mockedSnsPayload),
+            'Body' => $mockedSnsPayload,
+            'MD5OfBody' => md5($mockedSnsPayload), // @phpstan-ignore argument.type
             'ReceiptHandle' => $this->mockedReceiptHandle,
             'MessageId' => $this->mockedMessageId,
             'Attributes' => ['ApproximateReceiveCount' => 1],
         ];
 
         $this->mockedJobStrictKeyData = [
-            'Body' => json_encode(['key' => 'value']),
-            'MD5OfBody' => md5(json_encode(['key' => 'value'])),
+            'Body' => json_encode(['key' => 'value'], JSON_THROW_ON_ERROR),
+            'MD5OfBody' => md5(json_encode(['key' => 'value'], JSON_THROW_ON_ERROR)), // @phpstan-ignore argument.type
             'ReceiptHandle' => $this->mockedReceiptHandle,
             'MessageId' => $this->mockedMessageId,
             'Attributes' => ['ApproximateReceiveCount' => 1],
@@ -131,18 +130,16 @@ class ConfigurableJobTest extends TestCase
         $this->mockedRegexPayload = ['key' => $value];
 
         $this->mockedJobRegexKeyData = [
-            'Body' => json_encode($this->mockedRegexPayload),
-            'MD5OfBody' => md5(json_encode($this->mockedRegexPayload)),
+            'Body' => json_encode($this->mockedRegexPayload, JSON_THROW_ON_ERROR),
+            'MD5OfBody' => md5(json_encode($this->mockedRegexPayload, JSON_THROW_ON_ERROR)), // @phpstan-ignore argument.type
             'ReceiptHandle' => $this->mockedReceiptHandle,
             'MessageId' => $this->mockedMessageId,
             'Attributes' => ['ApproximateReceiveCount' => 1],
         ];
     }
 
-    /**
-     * @test
-     */
-    public function fire_standard_job()
+    #[Test]
+    public function fire_standard_job(): void
     {
         $job = $this->getJob();
         $handler = Mockery::mock(stdClass::class);
@@ -152,10 +149,8 @@ class ConfigurableJobTest extends TestCase
         $job->fire();
     }
 
-    /**
-     * @test
-     */
-    public function fire_sns_job()
+    #[Test]
+    public function fire_sns_job(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -176,10 +171,8 @@ class ConfigurableJobTest extends TestCase
         $job->fire();
     }
 
-    /**
-     * @test
-     */
-    public function fire_key_value_job()
+    #[Test]
+    public function fire_key_value_job(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -203,10 +196,8 @@ class ConfigurableJobTest extends TestCase
         $job->fire();
     }
 
-    /**
-     * @test
-     */
-    public function fire_key_value_job_with_regex_value()
+    #[Test]
+    public function fire_key_value_job_with_regex_value(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -230,10 +221,8 @@ class ConfigurableJobTest extends TestCase
         $job->fire();
     }
 
-    /**
-     * @test
-     */
-    public function fire_job_with_unmatched_payload()
+    #[Test]
+    public function fire_job_with_unmatched_payload(): void
     {
         LogFake::bind();
 
@@ -258,17 +247,15 @@ class ConfigurableJobTest extends TestCase
         $job->fire();
 
         Log::assertLogged(function (LogEntry $log) {
-            $encodedPayload = json_encode($this->mockedRegexPayload);
+            $encodedPayload = json_encode($this->mockedRegexPayload, JSON_THROW_ON_ERROR);
 
             return $log->level === 'info' &&
                 $log->message === "Unmatched message for queue {$this->queueName}: {$encodedPayload}";
         });
     }
 
-    /**
-     * @test
-     */
-    public function fail_standard_job()
+    #[Test]
+    public function fail_standard_job(): void
     {
         $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
             'QueueUrl' => $this->queueUrl,
@@ -283,10 +270,8 @@ class ConfigurableJobTest extends TestCase
         $job->fail(new ManuallyFailedException('Manually failed'));
     }
 
-    /**
-     * @test
-     */
-    public function fail_key_value_job()
+    #[Test]
+    public function fail_key_value_job(): void
     {
         Config::set(
             "configurable-sqs.{$this->queueName}",
@@ -322,7 +307,7 @@ class ConfigurableJobTest extends TestCase
         $job->fail(new ManuallyFailedException('Manually failed'));
     }
 
-    protected function getJob($jobdata = null, $app = null)
+    protected function getJob(mixed $jobdata = null, mixed $app = null): ConfigurableJob
     {
         return new ConfigurableJob(
             $app ?? $this->mockedContainer,

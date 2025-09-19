@@ -7,6 +7,7 @@ use Coverzen\ConfigurableSqs\Job\LogMessageListener;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use TiMacDonald\Log\LogEntry;
 use TiMacDonald\Log\LogFake;
 
@@ -24,9 +25,7 @@ class LogMessageListenerTest extends TestCase
         $this->job->shouldReceive('payload')->andReturn(['test' => 'test']);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function log_message_listener_constructor_array_logger(): void
     {
         $logger = ['channel' => 'testChannel'];
@@ -36,9 +35,7 @@ class LogMessageListenerTest extends TestCase
             $log->message === 'Unmatched message for queue test-queue: {"test":"test"}');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function log_message_listener_constructor_boolean_logger(): void
     {
         $listener = new LogMessageListener();

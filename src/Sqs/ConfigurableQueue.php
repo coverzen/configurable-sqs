@@ -5,9 +5,9 @@ namespace Coverzen\ConfigurableSqs\Sqs;
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Job\SimpleSQSJob;
-use Illuminate\Events\CallQueuedListener;
 use Illuminate\Queue\InvalidPayloadException;
 use Illuminate\Queue\SqsQueue;
+use JsonException;
 
 final class ConfigurableQueue extends SqsQueue
 {
@@ -43,32 +43,17 @@ final class ConfigurableQueue extends SqsQueue
     }
 
     /**
-     * @param  mixed  $job
-     * @param  string  $data
-     * @param  string|null  $queue
-     *
-     * @return string
-     */
-    public function push($job, $data = '', $queue = null): string
-    {
-        if ($job instanceof CallQueuedListener) {
-            $result = true;
-
-            if (method_exists($job->class, 'enqueueFilter')) {
-                $result = call_user_func([$job->class, 'enqueueFilter'], ...$job->data);
-            }
-            if ($result === false) {
-                return '';
-            }
-        }
-
-        return parent::push($job, $data, $queue);
-    }
-
-    /**
      * {@inheritdoc}
+     * @phpcsSuppress SlevomatCodingStandard.Functions.UnusedParameter
+     *
+     * @param Closure|object|string $job
+     * @param string $queue
+     * @param string $data
+     * @param null $delay
+     *
+     * @throws JsonException
      */
-    protected function createPayload($job, $queue, $data = ''): false|string
+    protected function createPayload($job, $queue, $data = '', $delay = null): string
     {
         if (!$job instanceof SimpleSQSJob) {
             return parent::createPayload($job, $queue, $data);
@@ -79,10 +64,7 @@ final class ConfigurableQueue extends SqsQueue
             'data' => $job->getPayload(),
         ];
 
-        $json = json_encode(
-            $jsonPayload,
-            JSON_UNESCAPED_UNICODE
-        );
+        $json = json_encode($jsonPayload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new InvalidPayloadException('Unable to JSON encode payload. Error (' . json_last_error() . '): ' . json_last_error_msg(), $jsonPayload);
