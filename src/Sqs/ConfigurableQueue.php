@@ -68,7 +68,7 @@ final class ConfigurableQueue extends SqsQueue
     /**
      * {@inheritdoc}
      */
-    protected function createPayload($job, $queue, $data = ''): false|string
+    protected function createPayload($job, $queue, $data = '', $delay = null): false|string
     {
         if (!$job instanceof SimpleSQSJob) {
             return parent::createPayload($job, $queue, $data);
