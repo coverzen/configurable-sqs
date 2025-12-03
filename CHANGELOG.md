@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/coverzen/configurable-sqs/compare/v1.2.2...v1.3.0) (2025-12-03)
+
+
+### Features
+
+* add Laravel 12 support ([04b0d5a](https://github.com/coverzen/configurable-sqs/commit/04b0d5adfbe21181da5afe88e34d0021aa85a4ae))
+
 ## [1.2.2](https://github.com/coverzen/configurable-sqs/compare/v1.2.1...v1.2.2) (2025-03-13)
 
 
