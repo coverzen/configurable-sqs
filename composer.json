@@ -8,16 +8,16 @@
         "email": "francesco.giovannini@coverzen.it"
     }],
     "require": {
-        "php": "^8.2",
+        "php": "^8.2||^8.3",
         "aws/aws-sdk-php": "^3.304"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.53",
         "nunomaduro/phpinsights": "^2.11",
-        "orchestra/testbench": "^8.22||^9.11",
-        "pestphp/pest": "^2.34",
-        "pestphp/pest-plugin-arch": "^2.7",
-        "pestphp/pest-plugin-laravel": "^2.3",
+        "orchestra/testbench": "^8.22||^9.11||^10.0",
+        "pestphp/pest": "^2.34||^3.0",
+        "pestphp/pest-plugin-arch": "^2.7||^3.0",
+        "pestphp/pest-plugin-laravel": "^2.3||^3.0",
         "phpmd/phpmd": "^2.15",
         "phpstan/extension-installer": "^1.3",
         "phpstan/phpstan": "^1.10",
@@ -37,7 +37,7 @@
     "scripts": {
         "analyse": [
             "@cs",
-            "@csfixer",
+            "@php-cs-fixer",
             "@insights",
             "@md",
             "@mnd",
@@ -45,9 +45,9 @@
         ],
         "test": "vendor/bin/pest",
         "cs": "vendor/bin/phpcs",
-        "csfixer": "vendor/bin/php-cs-fixer fix --no-interaction --dry-run --diff --stop-on-violation",
-        "csfixer-fix": "./vendor/bin/php-cs-fixer fix",
-        "insights": "vendor/bin/phpinsights",
+        "php-cs-fixer": "vendor/bin/php-cs-fixer fix --no-interaction --dry-run --diff --stop-on-violation",
+        "php-cs-fixer-fix": "./vendor/bin/php-cs-fixer fix",
+        "insights": "vendor/bin/phpinsights -n",
         "md": "vendor/bin/phpmd --cache src text phpmd.xml",
         "mnd": "vendor/bin/phpmnd --extensions=all,-property --allow-array-mapping src",
         "stan": "vendor/bin/phpstan analyse -v --no-interaction --memory-limit=1G"

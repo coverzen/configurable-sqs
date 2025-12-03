@@ -99,12 +99,13 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
     /**
      * @param array $data
      * @param $e
-     * @param mixed $uuid
+     * @param string $uuid
+     * @param ?Job $job
      *
      * @throws BindingResolutionException
      * @return void
      */
-    public function failed(array $data, $e, mixed $uuid): void
+    public function failed(array $data, $e, string $uuid, ?Job $job = null): void
     {
         /** @var mixed $command */
         $command = $this->container->make(Arr::get($data, 'commandName'));
