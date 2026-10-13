@@ -6,11 +6,14 @@ use Aws\Result;
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
 use Coverzen\ConfigurableSqs\Sqs\ConfigurableQueue;
+use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleAfterCommitJob;
 use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleSimpleSQSJob;
 use Coverzen\ConfigurableSqs\Tests\Helpers\ExampleStandardJob;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionException;
 use ReflectionMethod;
 
@@ -194,5 +197,41 @@ class ConfigurableQueueTest extends TestCase
         $result = json_decode($result, true);
         $this->assertSame('Coverzen\\ConfigurableSqs\\Tests\\Helpers\\ExampleStandardJob', $result['data']['commandName']);
         $this->assertSame('Illuminate\\Queue\\CallQueuedHandler@call', $result['job']);
+    }
+
+    #[Test]
+    public function it_pushes_an_after_commit_job_outside_a_transaction(): void
+    {
+        $queue = $this->makeQueue();
+
+        $this->sqs->expects('sendMessage')
+                  ->andReturn($this->mockedSendMessageResponseModel);
+
+        $this->assertNull($queue->push(new ExampleAfterCommitJob()));
+    }
+
+    #[Test]
+    public function it_pushes_an_after_commit_job_once_the_transaction_commits(): void
+    {
+        $queue = $this->makeQueue();
+
+        $this->sqs->expects('sendMessage')
+                  ->andReturn($this->mockedSendMessageResponseModel);
+
+        DB::transaction(fn (): ?string => $queue->push(new ExampleAfterCommitJob()));
+    }
+
+    private function makeQueue(): ConfigurableQueue
+    {
+        /** @var ConfigurableQueue $queue */
+        $queue = new ConfigurableQueue(
+            $this->sqs,
+            Config::get('queue.connections.test.queue'),
+            Config::get('queue.connections.test.prefix'),
+        );
+
+        $queue->setContainer($this->app);
+
+        return $queue;
     }
 }

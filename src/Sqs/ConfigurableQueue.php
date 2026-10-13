@@ -47,9 +47,9 @@ final class ConfigurableQueue extends SqsQueue
      * @param  string  $data
      * @param  string|null  $queue
      *
-     * @return string
+     * @return string|null
      */
-    public function push($job, $data = '', $queue = null): string
+    public function push($job, $data = '', $queue = null): ?string
     {
         if ($job instanceof CallQueuedListener) {
             $result = true;
@@ -97,6 +97,7 @@ final class ConfigurableQueue extends SqsQueue
             return null;
         }
 
+        // @phpstan-ignore argument.type (aws-sdk types AttributeNames as queue attributes only)
         $response = $this->sqs->receiveMessage([
             'QueueUrl' => $queue = $this->getQueue($queue),
             'AttributeNames' => ['ApproximateReceiveCount'],
