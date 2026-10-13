@@ -1,7 +1,7 @@
 services:
   localstack:
     container_name: ddev-${DDEV_SITENAME}-localstack
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.14.0
     environment:
       - SERVICES=sqs,sns
       - AWS_DEFAULT_REGION=eu-south-1

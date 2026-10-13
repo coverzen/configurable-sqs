@@ -23,7 +23,7 @@ jobs:
 
     services:
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:4.14.0
         env:
           SERVICES: "sqs,sns"
           AWS_DEFAULT_REGION: "eu-south-1"
