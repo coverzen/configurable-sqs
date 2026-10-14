@@ -108,5 +108,8 @@ return $config->setUsingCache(true)
                       'native_constant_invocation' => [
                           'fix_built_in' => false,
                       ],
+                      'declare_strict_types' => true,
+                      'static_lambda' => false,
+                      'modern_serialization_methods' => false,
                   ]
               );

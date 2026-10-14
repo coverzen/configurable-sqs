@@ -8,11 +8,11 @@ class CallQueuedHandlerExceptionThrower
 {
     public $deleteWhenMissingModels = true;
 
-    public function handle()
+    public function handle(): void
     {
     }
 
-    public function __wakeup()
+    public function __wakeup(): void
     {
         throw new ModelNotFoundException('Foo');
     }

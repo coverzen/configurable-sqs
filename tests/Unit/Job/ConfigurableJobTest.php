@@ -142,7 +142,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fire_standard_job()
+    public function fire_standard_job(): void
     {
         $job = $this->getJob();
         $handler = Mockery::mock(stdClass::class);
@@ -155,7 +155,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fire_sns_job()
+    public function fire_sns_job(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -179,7 +179,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fire_key_value_job()
+    public function fire_key_value_job(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -206,7 +206,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fire_key_value_job_with_regex_value()
+    public function fire_key_value_job_with_regex_value(): void
     {
         Config::set("configurable-sqs.{$this->queueName}", [
             [
@@ -233,7 +233,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fire_job_with_unmatched_payload()
+    public function fire_job_with_unmatched_payload(): void
     {
         LogFake::bind();
 
@@ -268,7 +268,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fail_standard_job()
+    public function fail_standard_job(): void
     {
         $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
             'QueueUrl' => $this->queueUrl,
@@ -286,7 +286,7 @@ class ConfigurableJobTest extends TestCase
     /**
      * @test
      */
-    public function fail_key_value_job()
+    public function fail_key_value_job(): void
     {
         Config::set(
             "configurable-sqs.{$this->queueName}",
