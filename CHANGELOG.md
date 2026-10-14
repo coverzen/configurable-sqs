@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/coverzen/configurable-sqs/compare/v1.3.0...v1.3.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* Allow push to return null for after-commit jobs ([9146c62](https://github.com/coverzen/configurable-sqs/commit/9146c62e565470c8d1d07d76ebe57619c857d24d))
+
 # [1.3.0](https://github.com/coverzen/configurable-sqs/compare/v1.2.2...v1.3.0) (2025-12-03)
 
 
