@@ -78,6 +78,24 @@ The `type` key can be one of the following values:
 - `ConfigurableJob::TYPE_SQS_REGEX_PAYLOAD`: This type will search for a specific key and value in the SQS message using a regex pattern.
 - `ConfigurableJob::TYPE_SNS_FROM`: This type will search for a specific SNS ARN in the SQS message.
 
+### Per-listener `tries` and `backoff`
+Every listener entry (any `type`) accepts two optional keys that override the worker's `--tries` and `--backoff` options for the messages it matches:
+
+```php
+        [
+            'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+            'search' => [
+                'key' => 'message',
+                'value' => 'test',
+            ],
+            'listener' => YourListener::class,
+            'tries' => 4,               // max attempts, based on SQS ApproximateReceiveCount
+            'backoff' => [5, 30, 60],   // seconds before the message is visible again: int or array<int>
+        ],
+```
+
+When the listener throws, the message is released back to SQS with a visibility timeout equal to the backoff for the current attempt (the last value is reused for later attempts). When a key is missing, the worker options apply as before.
+
 The listener class can implement the `Coverzen\ConfigurableSqs\Interfaces\ListenerInterface` interface.
 
 ```php

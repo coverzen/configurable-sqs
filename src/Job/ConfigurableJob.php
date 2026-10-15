@@ -32,6 +32,7 @@ class ConfigurableJob extends SqsJob
     private string $jobType = self::TYPE_LARAVEL;
     private string $jobName = self::TYPE_SQS_UNMATCHED_PAYLOAD;
     private ListenerEvent $listenerEvent;
+    private array $matchedConfig = [];
 
     /**
      * {@inheritDoc}
@@ -215,6 +216,38 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
+     * @return int|null
+     */
+    public function maxTries()
+    {
+        $this->payload();
+
+        $tries = $this->matchedConfig['tries'] ?? null;
+
+        // env() yields strings: Worker checks `=== 0` for unlimited tries
+        return is_numeric($tries) ? (int) $tries : parent::maxTries();
+    }
+
+    /**
+     * @return int|string|null
+     */
+    public function backoff()
+    {
+        $this->payload();
+
+        $backoff = $this->matchedConfig['backoff'] ?? null;
+
+        // Worker::calculateBackoff() explodes the value on ',' and casts each step: '' would mean 0s
+        if (is_array($backoff)) {
+            $steps = array_filter($backoff, is_numeric(...));
+
+            return $steps ? implode(',', $steps) : parent::backoff();
+        }
+
+        return is_numeric($backoff) ? (string) $backoff : parent::backoff();
+    }
+
+    /**
      * @param array $payload
      *
      * @return void
@@ -271,6 +304,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }
@@ -285,6 +319,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }
@@ -299,6 +334,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }

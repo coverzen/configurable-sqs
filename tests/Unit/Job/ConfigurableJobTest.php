@@ -322,6 +322,159 @@ class ConfigurableJobTest extends TestCase
         $job->fail(new ManuallyFailedException('Manually failed'));
     }
 
+    /**
+     * @test
+     */
+    public function matched_config_tries_and_array_backoff_are_used(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+                'tries' => 4,
+                'backoff' => [5, 30, 60],
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+
+        $this->assertSame(4, $job->maxTries());
+        $this->assertSame('5,30,60', $job->backoff());
+    }
+
+    /**
+     * @test
+     */
+    public function matched_config_int_backoff_is_cast_to_string(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SNS_FROM,
+                'arn' => 'arn:aws:sns:eu-south-1:000000000000:MyTopic',
+                'listener' => 'App\Listeners\MyListener',
+                'backoff' => 10,
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $job = $this->getJob($this->mockedSnsJobData, $this->app);
+
+        $this->assertNull($job->maxTries());
+        $this->assertSame('10', $job->backoff());
+    }
+
+    /**
+     * @test
+     * @testWith ["0", 0]
+     *           ["4", 4]
+     *           ["", null]
+     *           ["foo", null]
+     * @param string $tries
+     * @param ?int $expected
+     */
+    public function matched_config_string_tries_is_cast_or_falls_back(string $tries, ?int $expected): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+                'tries' => $tries,
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+
+        $this->assertSame($expected, $job->maxTries());
+    }
+
+    /**
+     * @test
+     * @testWith [[], null]
+     *           [[""], null]
+     *           ["", null]
+     *           ["foo", null]
+     *           [[0], "0"]
+     *           [[5, "x", "60"], "5,60"]
+     * @param mixed $backoff
+     * @param ?string $expected
+     */
+    public function matched_config_invalid_backoff_is_discarded(mixed $backoff, ?string $expected): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+                'backoff' => $backoff,
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+
+        $this->assertSame($expected, $job->backoff());
+    }
+
+    /**
+     * @test
+     */
+    public function matched_config_without_tries_and_backoff_falls_back_to_parent(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_REGEX_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => '/^test-/'],
+                'listener' => 'App\Listeners\MyListener',
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $job = $this->getJob($this->mockedJobRegexKeyData, $this->app);
+
+        $this->assertNull($job->maxTries());
+        $this->assertNull($job->backoff());
+    }
+
+    /**
+     * @test
+     */
+    public function unmatched_payload_ignores_listener_tries_and_backoff(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'other'],
+                'listener' => 'App\Listeners\MyListener',
+                'tries' => 4,
+                'backoff' => [5],
+            ],
+        ]);
+
+        $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
+
+        $this->assertNull($job->maxTries());
+        $this->assertNull($job->backoff());
+        $this->assertSame(ConfigurableJob::TYPE_SQS_UNMATCHED_PAYLOAD, $job->getJobType());
+    }
+
+    /**
+     * @test
+     */
+    public function standard_laravel_job_uses_payload_tries_and_backoff(): void
+    {
+        $payload = json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => 7, 'backoff' => '1,2']);
+        $handler = Mockery::mock(stdClass::class);
+        $job = $this->getJob(['Body' => $payload] + $this->mockedJobData);
+        $job->getContainer()->shouldReceive('make')->once()->with('foo')->andReturn($handler);
+
+        $this->assertSame(7, $job->maxTries());
+        $this->assertSame('1,2', $job->backoff());
+    }
+
     protected function getJob($jobdata = null, $app = null)
     {
         return new ConfigurableJob(
