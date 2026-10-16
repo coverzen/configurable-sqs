@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/coverzen/configurable-sqs/compare/v1.3.1...v1.4.0) (2026-10-16)
+
+
+### Bug Fixes
+
+* Avoid business field collisions in raw SQS envelopes ([392dfd9](https://github.com/coverzen/configurable-sqs/commit/392dfd94d949682d825d88bed22fa41985ee4393))
+* Keep raw SQS body from driving queue behavior ([a349302](https://github.com/coverzen/configurable-sqs/commit/a349302ba100ef1f2f3118ec823114960294e8a6))
+
+
+### Features
+
+* Allow per-listener timeout and fail_on_timeout ([2d245e0](https://github.com/coverzen/configurable-sqs/commit/2d245e0ae080b3dee235236ccc2f97fae7398549))
+* Allow per-listener tries and backoff ([c1e579c](https://github.com/coverzen/configurable-sqs/commit/c1e579cdddff9515d56acb436b782efa77d4baff))
+
 ## [1.3.1](https://github.com/coverzen/configurable-sqs/compare/v1.3.0...v1.3.1) (2026-10-14)
 
 
