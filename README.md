@@ -78,8 +78,8 @@ The `type` key can be one of the following values:
 - `ConfigurableJob::TYPE_SQS_REGEX_PAYLOAD`: This type will search for a specific key and value in the SQS message using a regex pattern.
 - `ConfigurableJob::TYPE_SNS_FROM`: This type will search for a specific SNS ARN in the SQS message.
 
-### Per-listener `tries` and `backoff`
-Every listener entry (any `type`) accepts two optional keys that override the worker's `--tries` and `--backoff` options for the messages it matches:
+### Per-listener `tries`, `backoff`, `timeout` and `fail_on_timeout`
+Every listener entry (any `type`) accepts optional keys that override the worker's `--tries`, `--backoff` and `--timeout` options for the messages it matches:
 
 ```php
         [
@@ -91,10 +91,14 @@ Every listener entry (any `type`) accepts two optional keys that override the wo
             'listener' => YourListener::class,
             'tries' => 4,               // max attempts, based on SQS ApproximateReceiveCount
             'backoff' => [5, 30, 60],   // seconds before the message is visible again: int or array<int>
+            'timeout' => 120,           // seconds before the worker is killed, 0 disables it
+            'fail_on_timeout' => true,  // on timeout, fail the message instead of letting SQS deliver it again
         ],
 ```
 
-When the listener throws, the message is released back to SQS with a visibility timeout equal to the backoff for the current attempt (the last value is reused for later attempts). When a key is missing, the worker options apply as before.
+When the listener throws, the message is released back to SQS with a visibility timeout equal to the backoff for the current attempt (the last value is reused for later attempts). When a key is missing, the worker options apply as before. Numeric strings (e.g. from `env()`) are accepted; invalid values are ignored.
+
+> **Warning:** keep `timeout` lower than the SQS queue `VisibilityTimeout`. Otherwise the message becomes visible again while the listener is still running, and another worker processes it in parallel.
 
 The listener class can implement the `Coverzen\ConfigurableSqs\Interfaces\ListenerInterface` interface.
 

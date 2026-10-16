@@ -254,6 +254,31 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
+     * @return int|null
+     */
+    public function timeout()
+    {
+        $this->payload();
+
+        $timeout = $this->matchedConfig['timeout'] ?? null;
+
+        return is_numeric($timeout) ? (int) $timeout : parent::timeout();
+    }
+
+    /**
+     * @return bool
+     */
+    public function shouldFailOnTimeout()
+    {
+        $this->payload();
+
+        $failOnTimeout = $this->matchedConfig['fail_on_timeout'] ?? null;
+
+        // (bool) 'false' would be true; invalid values give false, the raw message default
+        return $failOnTimeout === null ? parent::shouldFailOnTimeout() : filter_var($failOnTimeout, FILTER_VALIDATE_BOOL);
+    }
+
+    /**
      * @param array $payload
      *
      * @return void

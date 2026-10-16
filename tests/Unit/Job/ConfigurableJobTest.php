@@ -464,13 +464,66 @@ class ConfigurableJobTest extends TestCase
      */
     public function standard_laravel_job_uses_payload_tries_and_backoff(): void
     {
-        $payload = json_encode(['uuid' => 'laravel-uuid', 'job' => 'foo', 'data' => ['data'], 'maxTries' => 7, 'backoff' => '1,2']);
+        $payload = json_encode(['uuid' => 'laravel-uuid', 'job' => 'foo', 'data' => ['data'], 'maxTries' => 7, 'backoff' => '1,2', 'timeout' => 30, 'failOnTimeout' => true]);
         $handler = Mockery::mock(stdClass::class);
         $job = $this->getJob(['Body' => $payload] + $this->mockedJobData);
         $job->getContainer()->shouldReceive('make')->once()->with('foo')->andReturn($handler);
 
         $this->assertSame(7, $job->maxTries());
         $this->assertSame('1,2', $job->backoff());
+        $this->assertSame(30, $job->timeout());
+        $this->assertTrue($job->shouldFailOnTimeout());
+    }
+
+    /**
+     * @test
+     * @testWith [120, 120]
+     *           ["90", 90]
+     *           ["0", 0]
+     *           ["", null]
+     *           ["foo", null]
+     *           [null, null]
+     * @param mixed $timeout
+     * @param ?int $expected
+     */
+    public function matched_config_timeout(mixed $timeout, ?int $expected): void
+    {
+        $job = $this->getMatchedJobWith(['timeout' => $timeout]);
+
+        $this->assertSame($expected, $job->timeout());
+    }
+
+    /**
+     * @test
+     * @testWith [true, true]
+     *           ["true", true]
+     *           ["1", true]
+     *           [false, false]
+     *           ["false", false]
+     *           ["foo", false]
+     *           [null, false]
+     * @param mixed $failOnTimeout
+     * @param bool $expected
+     */
+    public function matched_config_fail_on_timeout(mixed $failOnTimeout, bool $expected): void
+    {
+        $job = $this->getMatchedJobWith(['fail_on_timeout' => $failOnTimeout]);
+
+        $this->assertSame($expected, $job->shouldFailOnTimeout());
+    }
+
+    private function getMatchedJobWith(array $options): ConfigurableJob
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+            ] + $options,
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        return $this->getJob($this->mockedJobStrictKeyData, $this->app);
     }
 
     /**
