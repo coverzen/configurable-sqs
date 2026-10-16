@@ -4,6 +4,7 @@ namespace Coverzen\ConfigurableSqs\Tests\Unit\Job;
 
 use Aws\Sqs\SqsClient;
 use Coverzen\ConfigurableSqs\Job\ConfigurableJob;
+use Coverzen\ConfigurableSqs\Job\SimpleSQSJob;
 use Coverzen\ConfigurableSqs\Tests\TestCase;
 use Illuminate\Container\Container;
 use Illuminate\Queue\ManuallyFailedException;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\MockInterface;
 use stdClass;
+use Throwable;
 use TiMacDonald\Log\LogEntry;
 use TiMacDonald\Log\LogFake;
 
@@ -302,14 +304,7 @@ class ConfigurableJobTest extends TestCase
             ]
         );
 
-        $this->mock('App\Listeners\MyListener', function (MockInterface $mock) {
-            $mock->shouldReceive('failed')
-                 ->with(
-                     ['key' => 'value'],
-                     Mockery::type(ManuallyFailedException::class),
-                     $this->mockedMessageId
-                 );
-        });
+        $listener = $this->bindFailedListener();
 
         $this->mockedSqsClient->shouldReceive('deleteMessage')->once()->with([
             'QueueUrl' => $this->queueUrl,
@@ -319,7 +314,10 @@ class ConfigurableJobTest extends TestCase
         /** @var ConfigurableJob $job */
         $job = $this->getJob($this->mockedJobStrictKeyData, $this->app);
 
-        $job->fail(new ManuallyFailedException('Manually failed'));
+        $exception = new ManuallyFailedException('Manually failed');
+        $job->fail($exception);
+
+        $this->assertSame($exception, $listener->failedWith);
     }
 
     /**
@@ -473,6 +471,95 @@ class ConfigurableJobTest extends TestCase
 
         $this->assertSame(7, $job->maxTries());
         $this->assertSame('1,2', $job->backoff());
+    }
+
+    /**
+     * @test
+     */
+    public function raw_body_fields_do_not_drive_queue_options(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $body = [
+            'key' => 'value',
+            'maxTries' => 1,
+            'delay' => 'PT5M',
+            'timeout' => 'abc',
+            'retryUntil' => 1,
+            'maxExceptions' => 1,
+            'failOnTimeout' => true,
+            'uuid' => 'emitter-uuid',
+            'displayName' => 'Emitter',
+        ];
+        $job = $this->getJob(['Body' => json_encode($body)] + $this->mockedJobData, $this->app);
+
+        $this->assertNull($job->maxTries());
+        $this->assertNull($job->backoff());
+        $this->assertNull($job->timeout());
+        $this->assertNull($job->retryUntil());
+        $this->assertNull($job->maxExceptions());
+        $this->assertFalse($job->shouldFailOnTimeout());
+        $this->assertSame($this->mockedMessageId, $job->uuid());
+        $this->assertSame('App\Listeners\MyListener', $job->resolveName());
+        $this->assertSame($body, $job->getHandlerPayload());
+    }
+
+    /**
+     * @test
+     */
+    public function raw_body_with_falsy_job_key_is_wrapped(): void
+    {
+        $body = ['job' => null, 'key' => 'value'];
+        $job = $this->getJob(['Body' => json_encode($body)] + $this->mockedJobData, $this->app);
+
+        $this->assertSame(SimpleSQSJob::class, $job->payload()['job']);
+        $this->assertSame($body, $job->getHandlerPayload());
+    }
+
+    /**
+     * @test
+     */
+    public function fail_raw_job_ignores_body_data_and_uuid(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+            ],
+        ]);
+        $listener = $this->bindFailedListener();
+        $this->mockedSqsClient->shouldReceive('deleteMessage')->once();
+
+        $body = ['key' => 'value', 'data' => ['commandName' => 'Emitter\Chosen\Class'], 'uuid' => 42];
+        $job = $this->getJob(['Body' => json_encode($body)] + $this->mockedJobData, $this->app);
+
+        $job->fail(new ManuallyFailedException('Manually failed'));
+
+        $this->assertInstanceOf(ManuallyFailedException::class, $listener->failedWith);
+    }
+
+    private function bindFailedListener(): object
+    {
+        // a real method is needed: the handler checks method_exists($command, 'failed'), a Mockery double has none
+        $listener = new class {
+            public ?Throwable $failedWith = null;
+
+            public function failed(Throwable $e): void
+            {
+                $this->failedWith = $e;
+            }
+        };
+        $this->app->instance('App\Listeners\MyListener', $listener);
+
+        return $listener;
     }
 
     protected function getJob($jobdata = null, $app = null)

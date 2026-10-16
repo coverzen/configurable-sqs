@@ -21,7 +21,7 @@ class LogMessageListenerTest extends TestCase
         LogFake::bind();
         $this->job = Mockery::mock(ConfigurableJob::class);
         $this->job->shouldReceive('getQueue')->andReturn('test-queue');
-        $this->job->shouldReceive('payload')->andReturn(['test' => 'test']);
+        $this->job->shouldReceive('getHandlerPayload')->andReturn(['test' => 'test']);
     }
 
     /**

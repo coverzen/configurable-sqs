@@ -46,7 +46,7 @@ class ConfigurableJob extends SqsJob
 
         $returnArray = [];
 
-        if (!Arr::exists($rawArray, 'job')) {
+        if (!Arr::get($rawArray, 'job')) {
             $returnArray['uuid'] = $this->job['MessageId'];
             $returnArray['data'] = $rawArray;
             $returnArray['job'] = SimpleSQSJob::class;
@@ -73,8 +73,10 @@ class ConfigurableJob extends SqsJob
             return;
         }
 
+        $payload = $this->payload();
+
         /** @var string|null $commandName */
-        $commandName = Arr::get($this->payload(), 'data.commandName');
+        $commandName = $this->jobType === self::TYPE_LARAVEL ? Arr::get($payload, 'data.commandName') : null;
 
         if (
             $e instanceof TimeoutExceededException &&
@@ -114,7 +116,7 @@ class ConfigurableJob extends SqsJob
     {
         $payload = $this->payload();
         $uuid = $payload['uuid'] ?? $this->job['MessageId'];
-        $data = $payload['data'] ?? [
+        $data = $this->jobType === self::TYPE_LARAVEL ? $payload['data'] : [
             'commandName' => $this->command,
         ];
 
@@ -266,7 +268,8 @@ class ConfigurableJob extends SqsJob
 
             return;
         }
-        $this->handlerPayload = $this->currentPayload = (Arr::get($payload, 'job') === SimpleSQSJob::class ? $payload['data'] : $payload);
+        // payload() keeps the envelope: the emitter must not drive tries, backoff, timeout, uuid... via body fields
+        $this->handlerPayload = $payload['data'];
         $this->getCommandConfiguration($this->handlerPayload);
 
         $this->listenerEvent = new ListenerEvent($this->instance = $this->resolve(ConfigurableCallQueuedHandler::class), 'call');

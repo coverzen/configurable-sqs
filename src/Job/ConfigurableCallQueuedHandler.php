@@ -85,7 +85,7 @@ final class ConfigurableCallQueuedHandler extends CallQueuedHandler
                                                ->then(function ($command) use ($job) {
                                                    if ($job->getJobType() === ConfigurableJob::TYPE_SQS_UNMATCHED_PAYLOAD) {
                                                        $logger = $job->getUnmatchedListener();
-                                                       if ($logger && $job->payload()) {
+                                                       if ($logger && $job->getHandlerPayload()) {
                                                            return $command->handle($job, $logger);
                                                        }
 
