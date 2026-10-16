@@ -112,7 +112,7 @@ class ConfigurableCallQueuedHandlerTest extends TestCase
         $job->shouldReceive('isDeletedOrReleased')->andReturn(false);
         $job->shouldReceive('getCommand')->andReturn(LogMessageListener::class);
         $job->shouldReceive('getJobType')->andReturn(ConfigurableJob::TYPE_SQS_UNMATCHED_PAYLOAD);
-        $job->shouldReceive('payload')->andReturn(['key' => 'value']);
+        $job->shouldReceive('getHandlerPayload')->andReturn(['key' => 'value']);
         $job->shouldReceive('getUnmatchedListener')->andReturn(true);
         $job->shouldReceive('getQueue')->andReturn('test-logger');
         $job->shouldReceive('delete')->once();

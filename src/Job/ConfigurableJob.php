@@ -32,6 +32,7 @@ class ConfigurableJob extends SqsJob
     private string $jobType = self::TYPE_LARAVEL;
     private string $jobName = self::TYPE_SQS_UNMATCHED_PAYLOAD;
     private ListenerEvent $listenerEvent;
+    private array $matchedConfig = [];
 
     /**
      * {@inheritDoc}
@@ -43,17 +44,21 @@ class ConfigurableJob extends SqsJob
         /** @var array<array-key, mixed> $rawArray */
         $rawArray = json_decode(json: $this->job['Body'], associative: true, flags: JSON_THROW_ON_ERROR);
 
-        $returnArray = [];
+        // Laravel payloads always carry uuid + job + data; envelopes written by this class carry body instead of data
+        $isEnvelope = is_string(Arr::get($rawArray, 'job')) &&
+            Arr::exists($rawArray, 'uuid') &&
+            (Arr::exists($rawArray, 'data') || Arr::exists($rawArray, 'body'));
 
-        if (!Arr::exists($rawArray, 'job')) {
-            $returnArray['uuid'] = $this->job['MessageId'];
-            $returnArray['data'] = $rawArray;
-            $returnArray['job'] = SimpleSQSJob::class;
-        } else {
-            $returnArray = $rawArray;
+        if ($isEnvelope) {
+            return json_encode($rawArray, JSON_THROW_ON_ERROR);
         }
 
-        return json_encode($returnArray, JSON_THROW_ON_ERROR);
+        // body, not data: queue:retry unserializes data.command, a plausible business field name
+        return json_encode([
+            'uuid' => $this->job['MessageId'],
+            'job' => SimpleSQSJob::class,
+            'body' => $rawArray,
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -72,8 +77,10 @@ class ConfigurableJob extends SqsJob
             return;
         }
 
+        $payload = $this->payload();
+
         /** @var string|null $commandName */
-        $commandName = Arr::get($this->payload(), 'data.commandName');
+        $commandName = $this->jobType === self::TYPE_LARAVEL ? Arr::get($payload, 'data.commandName') : null;
 
         if (
             $e instanceof TimeoutExceededException &&
@@ -113,7 +120,7 @@ class ConfigurableJob extends SqsJob
     {
         $payload = $this->payload();
         $uuid = $payload['uuid'] ?? $this->job['MessageId'];
-        $data = $payload['data'] ?? [
+        $data = $this->jobType === self::TYPE_LARAVEL ? $payload['data'] : [
             'commandName' => $this->command,
         ];
 
@@ -215,6 +222,63 @@ class ConfigurableJob extends SqsJob
     }
 
     /**
+     * @return int|null
+     */
+    public function maxTries()
+    {
+        $this->payload();
+
+        $tries = $this->matchedConfig['tries'] ?? null;
+
+        // env() yields strings: Worker checks `=== 0` for unlimited tries
+        return is_numeric($tries) ? (int) $tries : parent::maxTries();
+    }
+
+    /**
+     * @return int|string|null
+     */
+    public function backoff()
+    {
+        $this->payload();
+
+        $backoff = $this->matchedConfig['backoff'] ?? null;
+
+        // Worker::calculateBackoff() explodes the value on ',' and casts each step: '' would mean 0s
+        if (is_array($backoff)) {
+            $steps = array_filter($backoff, is_numeric(...));
+
+            return $steps ? implode(',', $steps) : parent::backoff();
+        }
+
+        return is_numeric($backoff) ? (string) $backoff : parent::backoff();
+    }
+
+    /**
+     * @return int|null
+     */
+    public function timeout()
+    {
+        $this->payload();
+
+        $timeout = $this->matchedConfig['timeout'] ?? null;
+
+        return is_numeric($timeout) ? (int) $timeout : parent::timeout();
+    }
+
+    /**
+     * @return bool
+     */
+    public function shouldFailOnTimeout()
+    {
+        $this->payload();
+
+        $failOnTimeout = $this->matchedConfig['fail_on_timeout'] ?? null;
+
+        // (bool) 'false' would be true; invalid values give false, the raw message default
+        return $failOnTimeout === null ? parent::shouldFailOnTimeout() : filter_var($failOnTimeout, FILTER_VALIDATE_BOOL);
+    }
+
+    /**
      * @param array $payload
      *
      * @return void
@@ -233,7 +297,8 @@ class ConfigurableJob extends SqsJob
 
             return;
         }
-        $this->handlerPayload = $this->currentPayload = (Arr::get($payload, 'job') === SimpleSQSJob::class ? $payload['data'] : $payload);
+        // payload() keeps the envelope so business fields never collide with Laravel options; data: rows written before 1.4.0
+        $this->handlerPayload = $payload['body'] ?? $payload['data'];
         $this->getCommandConfiguration($this->handlerPayload);
 
         $this->listenerEvent = new ListenerEvent($this->instance = $this->resolve(ConfigurableCallQueuedHandler::class), 'call');
@@ -271,6 +336,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }
@@ -285,6 +351,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }
@@ -299,6 +366,7 @@ class ConfigurableJob extends SqsJob
                 $this->jobName = Arr::get($config, 'job_name', $listener);
                 $this->command = $listener;
                 $this->instance = $this->resolve($this->command);
+                $this->matchedConfig = $config;
 
                 return;
             }

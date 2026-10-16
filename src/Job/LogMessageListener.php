@@ -18,7 +18,7 @@ final class LogMessageListener
      */
     public function handle(ConfigurableJob $job, array|bool|null $logger): void
     {
-        $message = json_encode($job->payload());
+        $message = json_encode($job->getHandlerPayload());
         $channel = Arr::get($logger, 'channel', null);
         Log::channel($channel)->info("Unmatched message for queue {$job->getQueue()}: {$message}");
     }
