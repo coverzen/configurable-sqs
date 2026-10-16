@@ -65,7 +65,7 @@ class ConfigurableJobTest extends TestCase
 
         $this->mockedJob = 'foo';
         $this->mockedData = ['data'];
-        $this->mockedPayload = json_encode(['job' => $this->mockedJob, 'data' => $this->mockedData, 'attempts' => 1]);
+        $this->mockedPayload = json_encode(['uuid' => 'laravel-uuid', 'job' => $this->mockedJob, 'data' => $this->mockedData, 'attempts' => 1]);
         $this->mockedMessageId = 'e3cd03ee-59a3-4ad8-b0aa-ee2e3808ac81';
         $this->mockedReceiptHandle = '0NNAq8PwvXuWv5gMtS9DJ8qEdyiUwbAjpp45w2m6M4SJ1Y+PxCh7R930NRB8ylSacEmoSnW18bgd4nK\/O6ctE+VFVul4eD23mA07vVoSnPI4F\/voI1eNCp6Iax0ktGmhlNVzBwaZHEr91BRtqTRM3QKd2ASF8u+IQaSwyl\/DGK+P1+dqUOodvOVtExJwdyDLy1glZVgm85Yw9Jf5yZEEErqRwzYz\/qSigdvW4sm2l7e4phRol\/+IjMtovOyH\/ukueYdlVbQ4OshQLENhUKe7RNN5i6bE\/e5x9bnPhfj2gbM';
 
@@ -464,7 +464,7 @@ class ConfigurableJobTest extends TestCase
      */
     public function standard_laravel_job_uses_payload_tries_and_backoff(): void
     {
-        $payload = json_encode(['job' => 'foo', 'data' => ['data'], 'maxTries' => 7, 'backoff' => '1,2']);
+        $payload = json_encode(['uuid' => 'laravel-uuid', 'job' => 'foo', 'data' => ['data'], 'maxTries' => 7, 'backoff' => '1,2']);
         $handler = Mockery::mock(stdClass::class);
         $job = $this->getJob(['Body' => $payload] + $this->mockedJobData);
         $job->getContainer()->shouldReceive('make')->once()->with('foo')->andReturn($handler);
@@ -544,6 +544,57 @@ class ConfigurableJobTest extends TestCase
         $job->fail(new ManuallyFailedException('Manually failed'));
 
         $this->assertInstanceOf(ManuallyFailedException::class, $listener->failedWith);
+    }
+
+    /**
+     * @test
+     */
+    public function raw_body_with_business_job_field_reaches_the_listener(): void
+    {
+        Config::set("configurable-sqs.{$this->queueName}", [
+            [
+                'type' => ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD,
+                'search' => ['key' => 'key', 'value' => 'value'],
+                'listener' => 'App\Listeners\MyListener',
+            ],
+        ]);
+        $this->mock('App\Listeners\MyListener');
+
+        $body = ['key' => 'value', 'job' => 'developer', 'data' => ['title' => 'PHP']];
+        $job = $this->getJob(['Body' => json_encode($body)] + $this->mockedJobData, $this->app);
+
+        $this->assertSame(SimpleSQSJob::class, $job->payload()['job']);
+        $this->assertSame(ConfigurableJob::TYPE_SQS_SIMPLE_PAYLOAD, $job->getJobType());
+        $this->assertSame($body, $job->getHandlerPayload());
+    }
+
+    /**
+     * @test
+     */
+    public function raw_envelope_keeps_body_out_of_laravel_data_key(): void
+    {
+        $body = ['command' => 'start'];
+        $job = $this->getJob(['Body' => json_encode($body)] + $this->mockedJobData, $this->app);
+
+        $this->assertSame(['uuid', 'job', 'body'], array_keys($job->payload()));
+        $this->assertSame($body, $job->payload()['body']);
+        $this->assertSame($body, $job->getHandlerPayload());
+    }
+
+    /**
+     * @test
+     * @testWith ["body"]
+     *           ["data"]
+     * @param string $key
+     */
+    public function retried_envelope_is_not_wrapped_again(string $key): void
+    {
+        $body = ['key' => 'value'];
+        $envelope = ['uuid' => 'original-message-id', 'job' => SimpleSQSJob::class, $key => $body];
+        $job = $this->getJob(['Body' => json_encode($envelope)] + $this->mockedJobData, $this->app);
+
+        $this->assertSame('original-message-id', $job->uuid());
+        $this->assertSame($body, $job->getHandlerPayload());
     }
 
     private function bindFailedListener(): object

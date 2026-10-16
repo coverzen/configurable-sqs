@@ -44,17 +44,21 @@ class ConfigurableJob extends SqsJob
         /** @var array<array-key, mixed> $rawArray */
         $rawArray = json_decode(json: $this->job['Body'], associative: true, flags: JSON_THROW_ON_ERROR);
 
-        $returnArray = [];
+        // Laravel payloads always carry uuid + job + data; envelopes written by this class carry body instead of data
+        $isEnvelope = is_string(Arr::get($rawArray, 'job')) &&
+            Arr::exists($rawArray, 'uuid') &&
+            (Arr::exists($rawArray, 'data') || Arr::exists($rawArray, 'body'));
 
-        if (!Arr::get($rawArray, 'job')) {
-            $returnArray['uuid'] = $this->job['MessageId'];
-            $returnArray['data'] = $rawArray;
-            $returnArray['job'] = SimpleSQSJob::class;
-        } else {
-            $returnArray = $rawArray;
+        if ($isEnvelope) {
+            return json_encode($rawArray, JSON_THROW_ON_ERROR);
         }
 
-        return json_encode($returnArray, JSON_THROW_ON_ERROR);
+        // body, not data: queue:retry unserializes data.command, a plausible business field name
+        return json_encode([
+            'uuid' => $this->job['MessageId'],
+            'job' => SimpleSQSJob::class,
+            'body' => $rawArray,
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -268,8 +272,8 @@ class ConfigurableJob extends SqsJob
 
             return;
         }
-        // payload() keeps the envelope: the emitter must not drive tries, backoff, timeout, uuid... via body fields
-        $this->handlerPayload = $payload['data'];
+        // payload() keeps the envelope so business fields never collide with Laravel options; data: rows written before 1.4.0
+        $this->handlerPayload = $payload['body'] ?? $payload['data'];
         $this->getCommandConfiguration($this->handlerPayload);
 
         $this->listenerEvent = new ListenerEvent($this->instance = $this->resolve(ConfigurableCallQueuedHandler::class), 'call');
